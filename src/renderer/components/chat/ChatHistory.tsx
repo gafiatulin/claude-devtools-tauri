@@ -19,7 +19,7 @@ interface ChatHistoryProps {
   tabId?: string;
 }
 
-export const ChatHistory = ({ tabId }: ChatHistoryProps): JSX.Element => {
+export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
   const VIRTUALIZATION_THRESHOLD = 80;
   const ESTIMATED_CHAT_ITEM_HEIGHT = 260;
 

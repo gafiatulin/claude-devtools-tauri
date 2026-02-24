@@ -1,6 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+@plugin "@tailwindcss/typography";
+
+/* TW4 compat: restore default border-color (TW3 used gray-200, TW4 uses currentColor) */
+@layer base {
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-border);
+  }
+}
 
 /* Theme CSS Custom Properties */
 :root {
@@ -381,12 +390,6 @@
   --skeleton-base: #d6d8de;
   --skeleton-base-light: #cdd0d7;
   --skeleton-base-dim: rgba(205, 208, 215, 0.6);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
 }
 
 body {
