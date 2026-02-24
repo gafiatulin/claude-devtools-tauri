@@ -144,7 +144,10 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
 
 fn user_entry_to_message(entry: UserEntry) -> ParsedMessage {
     let tool_results = extract_tool_results(&entry);
-    let is_meta = entry.is_meta.unwrap_or(false);
+    // Claude Code JSONL often omits isMeta for tool result messages.
+    // Infer is_meta = true when the message contains tool_result blocks,
+    // so these get classified as AI-context (not filtered as noise).
+    let is_meta = entry.is_meta.unwrap_or(!tool_results.is_empty());
 
     ParsedMessage {
         uuid: entry.common.uuid.unwrap_or_else(generate_uuid),

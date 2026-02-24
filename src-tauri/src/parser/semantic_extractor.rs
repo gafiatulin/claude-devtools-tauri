@@ -308,8 +308,9 @@ fn extract_steps_from_assistant(
                     SemanticStepType::ToolCall
                 };
 
+                // Use the actual tool_use ID so the frontend can link calls to results
                 steps.push(SemanticStep {
-                    id: step_id,
+                    id: id.clone(),
                     step_type,
                     start_time: msg.timestamp.clone(),
                     end_time: None,
@@ -449,8 +450,9 @@ fn extract_steps_from_tool_results(
             other => Some(other.to_string()),
         };
 
+        // Use the tool_use_id so the frontend can link this result to its call
         steps.push(SemanticStep {
-            id: format!("step-{counter}"),
+            id: tool_result.tool_use_id.clone(),
             step_type: SemanticStepType::ToolResult,
             start_time: msg.timestamp.clone(),
             end_time: None,
