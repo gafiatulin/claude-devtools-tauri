@@ -12,6 +12,32 @@ import {
   DIFF_ADDED_TEXT,
   DIFF_REMOVED_TEXT,
 } from '@renderer/constants/cssVariables';
+import { parseMarkdownInWorker } from '@renderer/workers/markdownWorkerClient';
+
+/**
+ * Tiny component that renders markdown via the worker, falling back to <pre>.
+ */
+function WorkerMarkdown({ content }: { content: string }): React.JSX.Element {
+  const [html, setHtml] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    parseMarkdownInWorker(content).then(
+      (result) => { if (!cancelled) setHtml(result); },
+      () => { /* keep plain text on error */ }
+    );
+    return () => { cancelled = true; };
+  }, [content]);
+
+  if (html !== null) {
+    return <div className="md-rendered" dangerouslySetInnerHTML={{ __html: html }} />;
+  }
+  return (
+    <pre className="whitespace-pre-wrap break-words" style={{ color: COLOR_TEXT }}>
+      {content}
+    </pre>
+  );
+}
 
 /**
  * Renders the input section based on tool type with theme-aware styling.
@@ -70,6 +96,53 @@ export function renderInput(toolName: string, input: Record<string, unknown>): R
           <code className="whitespace-pre-wrap break-all" style={{ color: COLOR_TEXT }}>
             {command}
           </code>
+        )}
+      </div>
+    );
+  }
+
+  // Special rendering for ExitPlanMode — render string fields as readable text
+  if (toolName === 'ExitPlanMode') {
+    const allowedPrompts = input.allowedPrompts as
+      | Array<{ tool?: string; prompt?: string }>
+      | undefined;
+
+    // Collect any extra string fields (e.g. plan content the model may include)
+    const extraFields = Object.entries(input).filter(
+      ([key, val]) => key !== 'allowedPrompts' && typeof val === 'string'
+    ) as Array<[string, string]>;
+
+    return (
+      <div className="space-y-2">
+        {extraFields.map(([key, val]) => (
+          <div key={key}>
+            <div className="mb-1 text-xs" style={{ color: COLOR_TEXT_MUTED }}>
+              {key}
+            </div>
+            <WorkerMarkdown content={val} />
+          </div>
+        ))}
+        {allowedPrompts && allowedPrompts.length > 0 && (
+          <div>
+            <div className="mb-1 text-xs" style={{ color: COLOR_TEXT_MUTED }}>
+              Allowed prompts
+            </div>
+            <ul className="list-disc space-y-0.5 pl-4" style={{ color: COLOR_TEXT }}>
+              {allowedPrompts.map((p, i) => (
+                <li key={i}>
+                  {p.tool && (
+                    <span style={{ color: COLOR_TEXT_MUTED }}>{p.tool}: </span>
+                  )}
+                  {p.prompt}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {extraFields.length === 0 && (!allowedPrompts || allowedPrompts.length === 0) && (
+          <div className="italic" style={{ color: COLOR_TEXT_MUTED }}>
+            No parameters
+          </div>
         )}
       </div>
     );
