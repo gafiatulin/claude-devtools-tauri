@@ -671,6 +671,7 @@ mod tests {
             tool_use_result: None,
             source_tool_use_id: None,
             source_tool_assistant_uuid: None,
+            plan_content: None,
         })
     }
 

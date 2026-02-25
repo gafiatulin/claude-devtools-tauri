@@ -70,6 +70,8 @@ pub struct ParsedMessage {
     pub tool_use_result: Option<ToolUseResultData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_compact_summary: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_content: Option<String>,
 }
 
 // =============================================================================

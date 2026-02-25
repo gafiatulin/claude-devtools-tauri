@@ -445,6 +445,7 @@ mod tests {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: None,
+            plan_content: None,
         }
     }
 
@@ -475,6 +476,7 @@ mod tests {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: None,
+            plan_content: None,
         }
     }
 
@@ -500,6 +502,7 @@ mod tests {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: None,
+            plan_content: None,
         }
     }
 
@@ -528,6 +531,7 @@ mod tests {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: Some(true),
+            plan_content: None,
         }
     }
 

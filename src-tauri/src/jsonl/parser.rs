@@ -92,6 +92,7 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: Some(true),
+            plan_content: None,
         }),
         ChatHistoryEntry::FileHistorySnapshot(e) => Some(ParsedMessage {
             uuid: e.uuid.unwrap_or_else(generate_uuid),
@@ -114,6 +115,7 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: None,
+            plan_content: None,
         }),
         ChatHistoryEntry::QueueOperation(e) => Some(ParsedMessage {
             uuid: e.uuid.unwrap_or_else(generate_uuid),
@@ -136,6 +138,7 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
             source_tool_assistant_uuid: None,
             tool_use_result: None,
             is_compact_summary: None,
+            plan_content: None,
         }),
         // Unknown entry types (e.g., "progress") are silently skipped.
         ChatHistoryEntry::Unknown => None,
@@ -170,6 +173,7 @@ fn user_entry_to_message(entry: UserEntry) -> ParsedMessage {
         source_tool_assistant_uuid: entry.source_tool_assistant_uuid,
         tool_use_result: entry.tool_use_result,
         is_compact_summary: None,
+        plan_content: entry.plan_content,
     }
 }
 
@@ -197,6 +201,7 @@ fn assistant_entry_to_message(entry: AssistantEntry) -> ParsedMessage {
         source_tool_assistant_uuid: None,
         tool_use_result: None,
         is_compact_summary: None,
+        plan_content: None,
     }
 }
 
@@ -226,6 +231,7 @@ fn system_entry_to_message(entry: SystemEntry) -> ParsedMessage {
         source_tool_assistant_uuid: None,
         tool_use_result: None,
         is_compact_summary: Some(entry.subtype == "compact_boundary"),
+        plan_content: None,
     }
 }
 

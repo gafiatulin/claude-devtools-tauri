@@ -205,6 +205,8 @@ fn scan_session_metadata_with_meta(
             context_consumption: None,
             compaction_count: None,
             phase_breakdown: None,
+            slug: None,
+            has_plan_content: None,
         });
     }
 
@@ -228,6 +230,8 @@ fn scan_session_metadata_with_meta(
         context_consumption: deep.context_consumption,
         compaction_count: deep.compaction_count,
         phase_breakdown: None,
+        slug: deep.slug,
+        has_plan_content: if deep.has_plan_content { Some(true) } else { None },
     })
 }
 
@@ -284,6 +288,8 @@ struct DeepMetadata {
     git_branch: Option<String>,
     context_consumption: Option<u64>,
     compaction_count: Option<u32>,
+    slug: Option<String>,
+    has_plan_content: bool,
 }
 
 /// Parse a session JSONL file to extract deep metadata.
@@ -311,6 +317,8 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
                 git_branch: None,
                 context_consumption: None,
                 compaction_count: None,
+                slug: None,
+                has_plan_content: false,
             };
         }
     };
@@ -326,6 +334,8 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
     let mut total_input_tokens: u64 = 0;
     let mut total_output_tokens: u64 = 0;
     let mut compaction_count: u32 = 0;
+    let mut slug: Option<String> = None;
+    let mut has_plan_content: bool = false;
 
     for line_result in reader.lines() {
         let line = match line_result {
@@ -346,6 +356,15 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
 
         let entry_type = value.get("type").and_then(|t| t.as_str()).unwrap_or("");
         message_count += 1;
+
+        // Extract slug from first entry that has one (present on all ConversationalFields entries)
+        if slug.is_none() {
+            slug = value
+                .get("slug")
+                .and_then(|s| s.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+        }
 
         match entry_type {
             "user" => {
@@ -368,6 +387,11 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
                     || content_str.contains("<command-name>")
                     || content_str.contains("<system-reminder>");
                 last_user_is_genuine = !is_meta && !is_command_output;
+
+                // Check if first non-meta user entry has planContent (plan chain)
+                if !has_plan_content && !is_meta {
+                    has_plan_content = value.get("planContent").is_some();
+                }
 
                 // Extract git branch from the first entry that has one
                 if git_branch.is_none() {
@@ -466,6 +490,8 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
         is_ongoing,
         git_branch,
         context_consumption,
+        slug,
+        has_plan_content,
         compaction_count: if compaction_count > 0 {
             Some(compaction_count)
         } else {

@@ -109,6 +109,10 @@ export interface Session {
   compactionCount?: number;
   /** Per-phase token breakdown for tooltip display */
   phaseBreakdown?: PhaseTokenBreakdown[];
+  /** Session slug shared between plan and implementation sessions */
+  slug?: string;
+  /** True if this session was started from a plan (has planContent in first user entry) */
+  hasPlanContent?: boolean;
 }
 
 /**

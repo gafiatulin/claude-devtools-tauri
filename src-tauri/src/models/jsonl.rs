@@ -180,6 +180,8 @@ pub struct UserEntry {
     #[serde(rename = "sourceToolAssistantUUID")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_tool_assistant_uuid: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

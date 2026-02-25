@@ -16,6 +16,8 @@ interface ChatScrollContainerProps {
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   conversation: SessionConversation;
   shouldVirtualize: boolean;
+  topBanner?: React.ReactNode;
+  bottomBanner?: React.ReactNode;
   rowVirtualizer: {
     getTotalSize: () => number;
     getVirtualItems: () => Array<{
@@ -44,6 +46,8 @@ export const ChatScrollContainer = React.memo(function ChatScrollContainer({
   scrollContainerRef,
   conversation,
   shouldVirtualize,
+  topBanner,
+  bottomBanner,
   rowVirtualizer,
   allContextInjections,
   isContextPanelVisible,
@@ -93,6 +97,7 @@ export const ChatScrollContainer = React.memo(function ChatScrollContainer({
         style={{ marginTop: allContextInjections.length > 0 ? '-2rem' : 0 }}
       >
         <div className="space-y-8">
+          {topBanner}
           {shouldVirtualize ? (
             <div
               style={{
@@ -149,6 +154,7 @@ export const ChatScrollContainer = React.memo(function ChatScrollContainer({
               />
             ))
           )}
+          {bottomBanner}
         </div>
       </div>
     </div>

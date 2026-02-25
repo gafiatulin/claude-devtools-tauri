@@ -5,6 +5,7 @@ import { useTabNavigationController } from '@renderer/hooks/useTabNavigationCont
 import { useTabUI } from '@renderer/hooks/useTabUI';
 import { useVisibleAIGroup } from '@renderer/hooks/useVisibleAIGroup';
 import { useStore } from '@renderer/store';
+import { buildPlanChainMap } from '@renderer/utils/planChainUtils';
 
 import { ChatScrollContainer } from './ChatScrollContainer';
 import { SessionContextPanel } from './SessionContextPanel/index';
@@ -13,6 +14,9 @@ import { ChatHistoryLoadingState } from './ChatHistoryLoadingState';
 import { useVirtualChatList } from './useVirtualChatList';
 
 import type { ContextInjection } from '@renderer/types/contextInjection';
+
+// Module-level: survives component unmount/remount on tab switch
+let pendingPlanChainScroll: 'top' | 'bottom' | null = null;
 
 interface ChatHistoryProps {
   /** Tab ID for per-tab state isolation (scroll position, deep links) */
@@ -70,6 +74,12 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     const td = tabId ? s.tabSessionData[tabId] : null;
     return td?.sessionDetail ?? s.sessionDetail;
   });
+
+  // Sessions and navigation for plan chain banners
+  const sessions = useStore((s) => s.sessions);
+  const openTab = useStore((s) => s.openTab);
+  const selectSession = useStore((s) => s.selectSession);
+  const activeProjectId = useStore((s) => s.activeProjectId);
 
   // State for Context button hover (local state OK - doesn't need per-tab isolation)
   const [isContextButtonHovered, setIsContextButtonHovered] = useState(false);
@@ -662,6 +672,104 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     else toolItemRefs.current.delete(toolId);
   }, []);
 
+  // Plan chain banners
+  const currentSession = sessionDetail?.session;
+  const planChainMap = useMemo(() => buildPlanChainMap(sessions), [sessions]);
+
+  const navigatePlanChain = useCallback(
+    (sessionId: string, scrollTo: 'top' | 'bottom') => {
+      if (!activeProjectId) return;
+      const target = sessions.find((s) => s.id === sessionId);
+      pendingPlanChainScroll = scrollTo;
+      openTab(
+        {
+          type: 'session' as const,
+          sessionId,
+          projectId: activeProjectId,
+          label: target?.firstMessage?.slice(0, 50) ?? 'Session',
+        },
+        { replaceActiveTab: true }
+      );
+      selectSession(sessionId);
+    },
+    [activeProjectId, sessions, openTab, selectSession]
+  );
+
+  // Execute pending plan chain scroll after conversation loads in the new tab.
+  // The module-level variable survives the unmount/remount caused by tab key change.
+  useEffect(() => {
+    if (!pendingPlanChainScroll || conversationLoading || !conversation) return;
+    const scrollTo = pendingPlanChainScroll;
+    pendingPlanChainScroll = null;
+
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        el.scrollTop = scrollTo === 'bottom' ? el.scrollHeight : 0;
+      });
+    }, 100);
+  }, [conversationLoading, conversation, scrollContainerRef]);
+
+  const planChainBanners = useMemo(() => {
+    if (!currentSession?.id) return { top: null, bottom: null };
+    const link = planChainMap.get(currentSession.id);
+    if (!link) return { top: null, bottom: null };
+
+    const shortId = (id: string) => id.slice(0, 8);
+
+    let top: React.ReactNode = null;
+    let bottom: React.ReactNode = null;
+
+    // This session was continued from a plan → show "Continued from" banner at top
+    if (link.prevSessionId) {
+      top = (
+        <div
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs"
+          style={{
+            backgroundColor: 'var(--color-surface-raised)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
+          <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Continued from plan</span>
+          <button
+            onClick={() => navigatePlanChain(link.prevSessionId!, 'bottom')}
+            className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            {shortId(link.prevSessionId)}
+          </button>
+        </div>
+      );
+    }
+
+    // This session has an implementation continuation → show banner at bottom
+    if (link.nextSessionId) {
+      bottom = (
+        <div
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs"
+          style={{
+            backgroundColor: 'var(--color-surface-raised)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+          }}
+        >
+          <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Implementation continues in</span>
+          <button
+            onClick={() => navigatePlanChain(link.nextSessionId!, 'top')}
+            className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
+            style={{ color: 'var(--color-accent)' }}
+          >
+            {shortId(link.nextSessionId)}
+          </button>
+        </div>
+      );
+    }
+
+    return { top, bottom };
+  }, [currentSession, planChainMap, navigatePlanChain]);
+
   // Loading state
   if (conversationLoading) return <ChatHistoryLoadingState />;
 
@@ -679,6 +787,8 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
           scrollContainerRef={scrollContainerRef}
           conversation={conversation}
           shouldVirtualize={shouldVirtualize}
+          topBanner={planChainBanners.top}
+          bottomBanner={planChainBanners.bottom}
           rowVirtualizer={rowVirtualizer}
           allContextInjections={allContextInjections}
           isContextPanelVisible={isContextPanelVisible}

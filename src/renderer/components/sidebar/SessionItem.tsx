@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { useStore } from '@renderer/store';
 import { formatTokensCompact } from '@shared/utils/tokenFormatting';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { EyeOff, MessageSquare, Pin } from 'lucide-react';
+import { ArrowDownLeft, EyeOff, FileText, MessageSquare, Pin } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { OngoingIndicator } from '../common/OngoingIndicator';
@@ -293,6 +293,20 @@ export const SessionItem = ({
                 contextConsumption={session.contextConsumption}
                 phaseBreakdown={session.phaseBreakdown}
               />
+            </>
+          )}
+          {session.slug && (
+            <>
+              <span style={{ opacity: 0.5 }}>·</span>
+              {session.hasPlanContent ? (
+                <span className="flex items-center gap-0.5" title="Continued from plan">
+                  <ArrowDownLeft className="size-2.5" style={{ color: 'var(--color-accent)' }} />
+                </span>
+              ) : (
+                <span className="flex items-center gap-0.5" title="Plan session">
+                  <FileText className="size-2.5" style={{ color: 'var(--color-accent)' }} />
+                </span>
+              )}
             </>
           )}
         </div>
