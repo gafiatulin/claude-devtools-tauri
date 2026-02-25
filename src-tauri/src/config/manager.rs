@@ -391,11 +391,11 @@ impl ConfigManager {
     }
 
     /// Returns the default config file path for macOS.
-    /// `~/Library/Application Support/com.claudedevtools.app/config.json`
+    /// `~/Library/Application Support/com.github.gafiatulin.claudedevtools/config.json`
     pub fn default_path() -> PathBuf {
         dirs::data_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("com.claudedevtools.app")
+            .join("com.github.gafiatulin.claudedevtools")
             .join("config.json")
     }
 }

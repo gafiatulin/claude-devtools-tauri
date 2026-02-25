@@ -173,11 +173,11 @@ impl NotificationStore {
     }
 
     /// Returns the default notifications file path for macOS.
-    /// `~/Library/Application Support/com.claudedevtools.app/notifications.json`
+    /// `~/Library/Application Support/com.github.gafiatulin.claudedevtools/notifications.json`
     pub fn default_path() -> PathBuf {
         dirs::data_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("com.claudedevtools.app")
+            .join("com.github.gafiatulin.claudedevtools")
             .join("notifications.json")
     }
 }
