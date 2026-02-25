@@ -186,7 +186,7 @@ export const createNotificationSlice: StateCreator<AppState, [], [], Notificatio
       // Open new session tab via openTab (properly adds to focused pane)
       state.openTab({
         type: 'session',
-        label: 'Loading...',
+        label: error.sessionId.slice(0, 8),
         projectId: error.projectId,
         sessionId: error.sessionId,
       });

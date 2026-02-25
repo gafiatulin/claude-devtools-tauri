@@ -1,10 +1,12 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useAutoScrollBottom } from '@renderer/hooks/useAutoScrollBottom';
 import { useTabNavigationController } from '@renderer/hooks/useTabNavigationController';
 import { useTabUI } from '@renderer/hooks/useTabUI';
 import { useVisibleAIGroup } from '@renderer/hooks/useVisibleAIGroup';
 import { useStore } from '@renderer/store';
+import { MAX_PANES } from '@renderer/types/panes';
 import { buildPlanChainMap } from '@renderer/utils/planChainUtils';
 
 import { ChatScrollContainer } from './ChatScrollContainer';
@@ -80,6 +82,8 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
   const openTab = useStore((s) => s.openTab);
   const selectSession = useStore((s) => s.selectSession);
   const activeProjectId = useStore((s) => s.activeProjectId);
+  const splitPane = useStore((s) => s.splitPane);
+  const paneCount = useStore((s) => s.paneLayout.panes.length);
 
   // State for Context button hover (local state OK - doesn't need per-tab isolation)
   const [isContextButtonHovered, setIsContextButtonHovered] = useState(false);
@@ -677,18 +681,18 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
   const planChainMap = useMemo(() => buildPlanChainMap(sessions), [sessions]);
 
   const navigatePlanChain = useCallback(
-    (sessionId: string, scrollTo: 'top' | 'bottom') => {
+    (sessionId: string, scrollTo: 'top' | 'bottom', event: React.MouseEvent) => {
       if (!activeProjectId) return;
-      const target = sessions.find((s) => s.id === sessionId);
+      const forceNewTab = event.ctrlKey || event.metaKey;
       pendingPlanChainScroll = scrollTo;
       openTab(
         {
           type: 'session' as const,
           sessionId,
           projectId: activeProjectId,
-          label: target?.firstMessage?.slice(0, 50) ?? 'Session',
+          label: sessionId.slice(0, 8),
         },
-        { replaceActiveTab: true }
+        forceNewTab ? { forceNewTab } : { replaceActiveTab: true }
       );
       selectSession(sessionId);
     },
@@ -711,6 +715,52 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     }, 100);
   }, [conversationLoading, conversation, scrollContainerRef]);
 
+  // Plan chain link context menu state
+  const [planChainMenu, setPlanChainMenu] = useState<{
+    x: number;
+    y: number;
+    sessionId: string;
+    scrollTo: 'top' | 'bottom';
+  } | null>(null);
+
+  const handlePlanChainContextMenu = useCallback(
+    (e: React.MouseEvent, sessionId: string, scrollTo: 'top' | 'bottom') => {
+      e.preventDefault();
+      setPlanChainMenu({ x: e.clientX, y: e.clientY, sessionId, scrollTo });
+    },
+    []
+  );
+
+  const handlePlanChainOpen = useCallback(
+    (sessionId: string, scrollTo: 'top' | 'bottom', mode: 'current' | 'newTab' | 'splitRight') => {
+      if (!activeProjectId) return;
+      pendingPlanChainScroll = scrollTo;
+      const tabDef = {
+        type: 'session' as const,
+        sessionId,
+        projectId: activeProjectId,
+        label: sessionId.slice(0, 8),
+      };
+      if (mode === 'newTab') {
+        openTab(tabDef, { forceNewTab: true });
+      } else if (mode === 'splitRight') {
+        openTab(tabDef);
+        selectSession(sessionId);
+        const state = useStore.getState();
+        const focusedPaneId = state.paneLayout.focusedPaneId;
+        const currentActiveTabId = state.activeTabId;
+        if (currentActiveTabId) {
+          splitPane(focusedPaneId, currentActiveTabId, 'right');
+        }
+        return;
+      } else {
+        openTab(tabDef, { replaceActiveTab: true });
+      }
+      selectSession(sessionId);
+    },
+    [activeProjectId, openTab, selectSession, splitPane]
+  );
+
   const planChainBanners = useMemo(() => {
     if (!currentSession?.id) return { top: null, bottom: null };
     const link = planChainMap.get(currentSession.id);
@@ -732,9 +782,10 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
             color: 'var(--color-text-secondary)',
           }}
         >
-          <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Continued from plan</span>
+          <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Continued from plan in</span>
           <button
-            onClick={() => navigatePlanChain(link.prevSessionId!, 'bottom')}
+            onClick={(e) => navigatePlanChain(link.prevSessionId!, 'bottom', e)}
+            onContextMenu={(e) => handlePlanChainContextMenu(e, link.prevSessionId!, 'bottom')}
             className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
             style={{ color: 'var(--color-accent)' }}
           >
@@ -757,7 +808,8 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
         >
           <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Implementation continues in</span>
           <button
-            onClick={() => navigatePlanChain(link.nextSessionId!, 'top')}
+            onClick={(e) => navigatePlanChain(link.nextSessionId!, 'top', e)}
+            onContextMenu={(e) => handlePlanChainContextMenu(e, link.nextSessionId!, 'top')}
             className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
             style={{ color: 'var(--color-accent)' }}
           >
@@ -768,7 +820,7 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     }
 
     return { top, bottom };
-  }, [currentSession, planChainMap, navigatePlanChain]);
+  }, [currentSession, planChainMap, navigatePlanChain, handlePlanChainContextMenu]);
 
   // Loading state
   if (conversationLoading) return <ChatHistoryLoadingState />;
@@ -823,6 +875,112 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
           </div>
         )}
       </div>
+
+      {planChainMenu &&
+        createPortal(
+          <PlanChainLinkMenu
+            x={planChainMenu.x}
+            y={planChainMenu.y}
+            paneCount={paneCount}
+            onClose={() => setPlanChainMenu(null)}
+            onOpenInCurrentPane={() => handlePlanChainOpen(planChainMenu.sessionId, planChainMenu.scrollTo, 'current')}
+            onOpenInNewTab={() => handlePlanChainOpen(planChainMenu.sessionId, planChainMenu.scrollTo, 'newTab')}
+            onSplitRightAndOpen={() => handlePlanChainOpen(planChainMenu.sessionId, planChainMenu.scrollTo, 'splitRight')}
+          />,
+          document.body
+        )}
+    </div>
+  );
+};
+
+// =============================================================================
+// Plan chain link context menu (navigation only, no pin/hide)
+// =============================================================================
+
+const PlanChainLinkMenu = ({
+  x,
+  y,
+  paneCount,
+  onClose,
+  onOpenInCurrentPane,
+  onOpenInNewTab,
+  onSplitRightAndOpen,
+}: Readonly<{
+  x: number;
+  y: number;
+  paneCount: number;
+  onClose: () => void;
+  onOpenInCurrentPane: () => void;
+  onOpenInNewTab: () => void;
+  onSplitRightAndOpen: () => void;
+}>): React.JSX.Element => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent): void => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  const menuWidth = 240;
+  const menuHeight = 120;
+  const clampedX = Math.min(x, window.innerWidth - menuWidth - 8);
+  const clampedY = Math.min(y, window.innerHeight - menuHeight - 8);
+
+  const handleClick = (action: () => void) => () => {
+    action();
+    onClose();
+  };
+
+  const atMaxPanes = paneCount >= MAX_PANES;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 min-w-[220px] overflow-hidden rounded-md border py-1 shadow-lg"
+      style={{
+        left: clampedX,
+        top: clampedY,
+        backgroundColor: 'var(--color-surface-overlay)',
+        borderColor: 'var(--color-border-emphasis)',
+        color: 'var(--color-text)',
+      }}
+    >
+      <button
+        className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm transition-colors hover:bg-[var(--color-surface-raised)]"
+        onClick={handleClick(onOpenInCurrentPane)}
+      >
+        Open in Current Pane
+      </button>
+      <button
+        className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm transition-colors hover:bg-[var(--color-surface-raised)]"
+        onClick={handleClick(onOpenInNewTab)}
+      >
+        <span>Open in New Tab</span>
+        <span className="ml-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          ⌘ Click
+        </span>
+      </button>
+      <div className="mx-2 my-1 border-t" style={{ borderColor: 'var(--color-border)' }} />
+      <button
+        className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm transition-colors hover:bg-[var(--color-surface-raised)]"
+        onClick={handleClick(onSplitRightAndOpen)}
+        disabled={atMaxPanes}
+        style={{ opacity: atMaxPanes ? 0.4 : 1 }}
+      >
+        Split Right and Open
+      </button>
     </div>
   );
 };

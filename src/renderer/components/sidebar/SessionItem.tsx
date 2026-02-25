@@ -178,7 +178,7 @@ export const SessionItem = ({
         type: 'session',
         sessionId: session.id,
         projectId: activeProjectId,
-        label: session.firstMessage?.slice(0, 50) ?? 'Session',
+        label: shortId,
       },
       forceNewTab ? { forceNewTab } : { replaceActiveTab: true }
     );
@@ -191,7 +191,8 @@ export const SessionItem = ({
     setContextMenu({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const sessionLabel = session.firstMessage?.slice(0, 50) ?? 'Session';
+  const shortId = session.id.slice(0, 8);
+  const sessionLabel = shortId;
 
   const handleOpenInCurrentPane = useCallback(() => {
     if (!activeProjectId) return;
@@ -240,20 +241,20 @@ export const SessionItem = ({
     }
   }, [activeProjectId, openTab, selectSession, session.id, sessionLabel, splitPane]);
 
-  // Height must match SESSION_ITEM_HEIGHT (48px) in virtualListConstants.ts for virtual scroll
+  // Height must match SESSION_ITEM_HEIGHT (62px) in virtualListConstants.ts for virtual scroll
   return (
     <>
       <button
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        className={`h-[48px] w-full overflow-hidden border-b px-3 py-2 text-left transition-all duration-150 ${isActive ? '' : 'bg-transparent hover:opacity-80'} `}
+        className={`h-[62px] w-full overflow-hidden border-b px-3 py-1.5 text-left transition-all duration-150 ${isActive ? '' : 'bg-transparent hover:opacity-80'} `}
         style={{
           borderColor: 'var(--color-border)',
           ...(isActive ? { backgroundColor: 'var(--color-surface-raised)' } : {}),
           ...(isHidden ? { opacity: 0.5 } : {}),
         }}
       >
-        {/* First line: title + ongoing indicator + pin/hidden icons */}
+        {/* First line: short session ID + ongoing/pin/hidden icons */}
         <div className="flex items-center gap-1.5">
           {multiSelectActive && (
             <input
@@ -267,15 +268,32 @@ export const SessionItem = ({
           {session.isOngoing && <OngoingIndicator />}
           {isPinned && <Pin className="size-2.5 shrink-0 text-blue-400" />}
           {isHidden && <EyeOff className="size-2.5 shrink-0 text-zinc-500" />}
+          {session.slug && (
+            <span title={session.hasPlanContent ? 'Continued from plan' : 'Plan session'}>
+              {session.hasPlanContent ? (
+                <ArrowDownLeft className="size-2.5 shrink-0" style={{ color: 'var(--color-accent)' }} />
+              ) : (
+                <FileText className="size-2.5 shrink-0" style={{ color: 'var(--color-accent)' }} />
+              )}
+            </span>
+          )}
           <span
-            className="truncate text-[13px] font-medium leading-tight"
+            className="font-mono text-[13px] font-medium leading-tight"
             style={{ color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}
           >
-            {session.firstMessage ?? 'Untitled'}
+            {shortId}
           </span>
         </div>
 
-        {/* Second line: message count + time + context consumption */}
+        {/* Second line: first message preview */}
+        <div
+          className="mt-0.5 truncate text-[11px] leading-tight"
+          style={{ color: 'var(--color-text-muted)', opacity: 0.7 }}
+        >
+          {session.firstMessage ?? 'Untitled'}
+        </div>
+
+        {/* Third line: message count + time + context consumption */}
         <div
           className="mt-0.5 flex items-center gap-2 text-[10px] leading-tight"
           style={{ color: 'var(--color-text-muted)' }}
@@ -293,20 +311,6 @@ export const SessionItem = ({
                 contextConsumption={session.contextConsumption}
                 phaseBreakdown={session.phaseBreakdown}
               />
-            </>
-          )}
-          {session.slug && (
-            <>
-              <span style={{ opacity: 0.5 }}>·</span>
-              {session.hasPlanContent ? (
-                <span className="flex items-center gap-0.5" title="Continued from plan">
-                  <ArrowDownLeft className="size-2.5" style={{ color: 'var(--color-accent)' }} />
-                </span>
-              ) : (
-                <span className="flex items-center gap-0.5" title="Plan session">
-                  <FileText className="size-2.5" style={{ color: 'var(--color-accent)' }} />
-                </span>
-              )}
             </>
           )}
         </div>

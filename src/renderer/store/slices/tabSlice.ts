@@ -692,7 +692,7 @@ export const createTabSlice: StateCreator<AppState, [], [], TabSlice> = (set, ge
       // Open the session in a new tab
       state.openTab({
         type: 'session',
-        label: 'Loading...',
+        label: sessionId.slice(0, 8),
         projectId,
         sessionId,
         fromSearch,

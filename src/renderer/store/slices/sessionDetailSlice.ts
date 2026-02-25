@@ -4,7 +4,7 @@
 
 import { api } from '@renderer/api';
 import { asEnhancedChunkArray } from '@renderer/types/data';
-import { findTabBySession, truncateLabel } from '@renderer/types/tabs';
+import { findTabBySession } from '@renderer/types/tabs';
 import { processSessionClaudeMd } from '@renderer/utils/claudeMdTracker';
 import { computeContextInWorker } from '@renderer/workers/contextWorkerClient';
 import {
@@ -399,9 +399,7 @@ export const createSessionDetailSlice: StateCreator<AppState, [], [], SessionDet
       }
       const existingTab = findTabBySession(currentState.openTabs, sessionId);
       if (existingTab && detail) {
-        const newLabel = detail.session.firstMessage
-          ? truncateLabel(detail.session.firstMessage)
-          : `Session ${sessionId.slice(0, 8)}`;
+        const newLabel = sessionId.slice(0, 8);
         currentState.updateTabLabel(existingTab.id, newLabel);
       }
 
