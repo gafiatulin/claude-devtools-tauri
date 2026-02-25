@@ -12,7 +12,7 @@ import {
   TAG_TEXT,
 } from '@renderer/constants/cssVariables';
 import { getTeamColorSet } from '@renderer/constants/teamColors';
-import { useTabUI } from '@renderer/hooks/useTabUI';
+import { useIsSubagentTraceExpanded, useTabUI } from '@renderer/hooks/useTabUI';
 import { useStore } from '@renderer/store';
 import { buildDisplayItemsFromMessages, buildSummary } from '@renderer/utils/aiGroupEnhancer';
 import { computeSubagentPhaseBreakdown } from '@renderer/utils/aiGroupHelpers';
@@ -87,9 +87,9 @@ export const SubagentItem: React.FC<SubagentItemProps> = ({
     );
   }, [subagent.team, subagent.messages]);
 
-  // Per-tab trace expansion state (replaces local useState for true per-tab isolation)
-  const { isSubagentTraceExpanded, toggleSubagentTraceExpansion } = useTabUI();
-  const isTraceManuallyExpanded = isSubagentTraceExpanded(subagent.id);
+  // Per-tab trace expansion state — targeted hook subscribes only to THIS subagent's state
+  const isTraceManuallyExpanded = useIsSubagentTraceExpanded(subagent.id);
+  const { toggleSubagentTraceExpansion } = useTabUI();
 
   // Check if contains highlighted error
   // Also matches when the highlight targets the parent Task tool_use that spawned this subagent

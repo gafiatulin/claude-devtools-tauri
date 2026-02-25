@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { COLOR_TEXT_MUTED, COLOR_TEXT_SECONDARY } from '@renderer/constants/cssVariables';
-import { useTabUI } from '@renderer/hooks/useTabUI';
+import { useTabIdOptional } from '@renderer/contexts/useTabUIContext';
+import { useExpandedDisplayItemIds, useIsAIGroupExpanded, useTabUI } from '@renderer/hooks/useTabUI';
 import { useStore } from '@renderer/store';
 import { type PrecedingSlashInfo } from '@renderer/utils/aiGroupEnhancer';
 import { enhanceAIGroupInWorker } from '@renderer/workers/aiGroupEnhancerWorkerClient';
@@ -128,11 +129,15 @@ const AIChatGroupInner = ({
   registerToolRef,
 }: Readonly<AIChatGroupProps>): React.JSX.Element => {
   // Per-tab UI state for expansion (completely isolated per tab)
+  // Uses targeted hooks that subscribe to specific values — only THIS group re-renders
+  // when its expansion state changes, not all N groups.
+  const tabId = useTabIdOptional();
+  const isAIGroupExpandedForTab = useIsAIGroupExpanded(aiGroup.id);
+  const expandedItemIds = useExpandedDisplayItemIds(aiGroup.id);
+
+  // Action functions (stable references, don't cause re-renders)
   const {
-    tabId,
-    isAIGroupExpanded: isAIGroupExpandedForTab,
     toggleAIGroupExpansion,
-    getExpandedDisplayItemIds,
     toggleDisplayItemExpansion,
     expandDisplayItem,
   } = useTabUI();
@@ -281,7 +286,7 @@ const AIChatGroupInner = ({
 
   // Auto-expand if contains error or search result, or if manually expanded
   const isExpanded =
-    isAIGroupExpandedForTab(aiGroup.id) || containsHighlightedError || shouldExpandForSearch;
+    isAIGroupExpandedForTab || containsHighlightedError || shouldExpandForSearch;
 
   // Helper function to find the item ID containing the highlighted tool
   const displayItems = enhanced?.displayItems;
@@ -308,12 +313,6 @@ const AIChatGroupInner = ({
       return null;
     },
     [displayItems]
-  );
-
-  // Get expanded item IDs for this AI group (per-tab)
-  const expandedItemIds = useMemo(
-    () => getExpandedDisplayItemIds(aiGroup.id),
-    [getExpandedDisplayItemIds, aiGroup.id]
   );
 
   // Track which highlightToolUseId we've already processed to prevent infinite loops

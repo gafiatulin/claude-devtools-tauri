@@ -27,7 +27,7 @@ import type { TriggerColor } from '@shared/constants/triggerColors';
 interface DisplayItemListProps {
   items: AIGroupDisplayItem[];
   onItemClick: (itemId: string) => void;
-  expandedItemIds: Set<string>;
+  expandedItemIds: ReadonlySet<string>;
   aiGroupId: string;
   /** Tool use ID to highlight for error deep linking */
   highlightToolUseId?: string;

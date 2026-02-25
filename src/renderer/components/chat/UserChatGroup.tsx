@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 
 import { api } from '@renderer/api';
-import { useTabUI } from '@renderer/hooks/useTabUI';
+import { useTabIdOptional } from '@renderer/contexts/useTabUIContext';
 import { useStore } from '@renderer/store';
 import { createLogger } from '@shared/utils/logger';
 import { format } from 'date-fns';
@@ -320,7 +320,7 @@ const UserChatGroupInner = ({ userGroup }: Readonly<UserChatGroupProps>): React.
   const [validatedPaths, setValidatedPaths] = useState<Record<string, boolean>>({});
 
   // Get projectPath from per-tab session data, falling back to global state
-  const { tabId } = useTabUI();
+  const tabId = useTabIdOptional();
   const projectPath = useStore((s) => {
     const td = tabId ? s.tabSessionData[tabId] : null;
     return (td?.sessionDetail ?? s.sessionDetail)?.session?.projectPath;
