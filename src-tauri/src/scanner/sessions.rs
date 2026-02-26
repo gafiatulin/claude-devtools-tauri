@@ -128,6 +128,8 @@ pub fn scan_sessions_with_cache(
                     .ok()
                 }
             })
+            // Filter out empty sessions (no genuine user messages)
+            .filter(|s| s.first_message.is_some())
             .collect()
     });
 
@@ -691,6 +693,8 @@ pub fn scan_sessions_paginated_with_cache(
                     }
                 }
             })
+            // Filter out empty sessions (no genuine user messages)
+            .filter(|s| s.first_message.is_some())
             .collect()
     });
 
