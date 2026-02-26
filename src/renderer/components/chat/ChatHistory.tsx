@@ -1,5 +1,6 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import ReactMarkdown from 'react-markdown';
 
 import { useAutoScrollBottom } from '@renderer/hooks/useAutoScrollBottom';
 import { useTabNavigationController } from '@renderer/hooks/useTabNavigationController';
@@ -8,8 +9,12 @@ import { useVisibleAIGroup } from '@renderer/hooks/useVisibleAIGroup';
 import { useStore } from '@renderer/store';
 import { MAX_PANES } from '@renderer/types/panes';
 import { buildPlanChainMap } from '@renderer/utils/planChainUtils';
+import { FileCheck } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
 
+import { CopyButton } from '../common/CopyButton';
 import { ChatScrollContainer } from './ChatScrollContainer';
+import { markdownComponents } from './markdownComponents';
 import { SessionContextPanel } from './SessionContextPanel/index';
 import { ChatHistoryEmptyState } from './ChatHistoryEmptyState';
 import { ChatHistoryLoadingState } from './ChatHistoryLoadingState';
@@ -771,28 +776,84 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     let top: React.ReactNode = null;
     let bottom: React.ReactNode = null;
 
-    // This session was continued from a plan → show "Continued from" banner at top
+    // This session was continued from a plan
     if (link.prevSessionId) {
-      top = (
-        <div
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs"
-          style={{
-            backgroundColor: 'var(--color-surface-raised)',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
-          }}
-        >
-          <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Continued from plan in</span>
-          <button
-            onClick={(e) => navigatePlanChain(link.prevSessionId!, 'bottom', e)}
-            onContextMenu={(e) => handlePlanChainContextMenu(e, link.prevSessionId!, 'bottom')}
-            className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
-            style={{ color: 'var(--color-accent)' }}
-          >
-            {shortId(link.prevSessionId)}
-          </button>
-        </div>
+      // Find the planContent from the first user message in the conversation
+      const firstUserWithPlan = conversation?.items.find(
+        (item): item is { type: 'user'; group: { content: { planContent?: string } } } & typeof item =>
+          item.type === 'user' && Boolean(item.group.content.planContent)
       );
+      const planContent = firstUserWithPlan?.group.content.planContent;
+
+      if (planContent) {
+        // Full plan card with scrollable markdown
+        top = (
+          <div
+            className="overflow-hidden rounded-lg"
+            style={{
+              backgroundColor: 'var(--plan-exit-bg)',
+              border: '1px solid var(--plan-exit-border)',
+            }}
+          >
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-4 py-2"
+              style={{
+                borderBottom: '1px solid var(--plan-exit-border)',
+                backgroundColor: 'var(--plan-exit-header-bg)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <FileCheck className="size-4" style={{ color: 'var(--plan-exit-text)' }} />
+                <span className="text-sm font-medium" style={{ color: 'var(--plan-exit-text)' }}>
+                  Implementation Plan
+                </span>
+                <span className="text-xs" style={{ color: 'var(--plan-exit-text)', opacity: 0.6 }}>
+                  from
+                </span>
+                <button
+                  onClick={(e) => navigatePlanChain(link.prevSessionId!, 'bottom', e)}
+                  onContextMenu={(e) => handlePlanChainContextMenu(e, link.prevSessionId!, 'bottom')}
+                  className="font-mono text-xs underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
+                  style={{ color: 'var(--plan-exit-text)' }}
+                >
+                  {shortId(link.prevSessionId)}
+                </button>
+              </div>
+              <CopyButton text={planContent} inline />
+            </div>
+
+            {/* Plan content - scrollable */}
+            <div className="max-h-96 overflow-y-auto px-4 py-3">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {planContent}
+              </ReactMarkdown>
+            </div>
+          </div>
+        );
+      } else {
+        // Fallback: simple link banner (no planContent available yet)
+        top = (
+          <div
+            className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs"
+            style={{
+              backgroundColor: 'var(--color-surface-raised)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-secondary)',
+            }}
+          >
+            <span className="shrink-0" style={{ color: 'var(--color-text-muted)' }}>Continued from plan in</span>
+            <button
+              onClick={(e) => navigatePlanChain(link.prevSessionId!, 'bottom', e)}
+              onContextMenu={(e) => handlePlanChainContextMenu(e, link.prevSessionId!, 'bottom')}
+              className="font-mono underline decoration-dotted underline-offset-2 transition-colors hover:opacity-80"
+              style={{ color: 'var(--color-accent)' }}
+            >
+              {shortId(link.prevSessionId)}
+            </button>
+          </div>
+        );
+      }
     }
 
     // This session has an implementation continuation → show banner at bottom
@@ -820,7 +881,7 @@ export const ChatHistory = ({ tabId }: ChatHistoryProps) => {
     }
 
     return { top, bottom };
-  }, [currentSession, planChainMap, navigatePlanChain, handlePlanChainContextMenu]);
+  }, [currentSession, planChainMap, conversation, navigatePlanChain, handlePlanChainContextMenu]);
 
   // Loading state
   if (conversationLoading) return <ChatHistoryLoadingState />;

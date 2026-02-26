@@ -280,6 +280,7 @@ function extractUserGroupContent(message: ParsedMessage): UserGroupContent {
     commands,
     images,
     fileReferences,
+    planContent: message.planContent,
   };
 }
 

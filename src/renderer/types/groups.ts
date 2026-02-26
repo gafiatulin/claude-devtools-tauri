@@ -91,6 +91,8 @@ export interface UserGroupContent {
   images: ImageData[];
   /** Extracted file references */
   fileReferences: FileReference[];
+  /** Plan content markdown if this user message started an implementation session */
+  planContent?: string;
 }
 
 /**

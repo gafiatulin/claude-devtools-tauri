@@ -414,6 +414,10 @@ const UserChatGroupInner = ({ userGroup }: Readonly<UserChatGroupProps>): React.
   const displayText =
     isLongContent && !isExpanded ? textContent.slice(0, 500) + '...' : textContent;
 
+  // When planContent is present, the user message is just "Implement the following plan:"
+  // which is meaningless — the plan banner in ChatHistory handles it instead.
+  if (content.planContent) return <></>;
+
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%] space-y-2">
