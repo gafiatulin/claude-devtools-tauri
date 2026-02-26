@@ -49,8 +49,18 @@ interface BaseItemProps {
 
 /**
  * Small status dot indicator.
+ * For 'pending' status, renders an animated pulsing dot.
  */
 export const StatusDot: React.FC<{ status: ItemStatus }> = ({ status }) => {
+  if (status === 'pending') {
+    return (
+      <span className="relative flex size-1.5 shrink-0">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-yellow-500" />
+      </span>
+    );
+  }
+
   return (
     <span
       className="inline-block size-1.5 shrink-0 rounded-full"

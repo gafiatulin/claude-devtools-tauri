@@ -1,10 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
 
+use crate::models::chunks::ToolProgress;
 use crate::models::domain::MessageType;
 use crate::models::jsonl::{
-    AssistantEntry, ChatHistoryEntry, ContentBlock, StringOrBlocks, SystemEntry, UserEntry,
+    AssistantEntry, ChatHistoryEntry, ContentBlock, ProgressData, StringOrBlocks, SystemEntry,
+    UserEntry,
 };
 use crate::models::messages::{ParsedMessage, ToolCall, ToolResult};
 
@@ -140,8 +142,8 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
             is_compact_summary: None,
             plan_content: None,
         }),
-        // Unknown entry types (e.g., "progress") are silently skipped.
-        ChatHistoryEntry::Unknown => None,
+        // Progress and unknown entry types are silently skipped.
+        ChatHistoryEntry::Progress(_) | ChatHistoryEntry::Unknown => None,
     }
 }
 
@@ -301,6 +303,77 @@ fn extract_tool_results(entry: &UserEntry) -> Vec<ToolResult> {
     }
 }
 
+/// Maximum characters to keep from bash full_output to limit IPC payload size.
+const MAX_PROGRESS_OUTPUT_CHARS: usize = 10_000;
+
+/// Extract a progress map from JSONL entries, keyed by parent_tool_use_id.
+/// Last-wins semantics: if multiple progress entries exist for the same tool,
+/// only the most recent one is kept.
+pub fn extract_progress_map(entries: &[ChatHistoryEntry]) -> HashMap<String, ToolProgress> {
+    let mut map = HashMap::new();
+
+    for entry in entries {
+        if let Some(progress) = entry.as_progress() {
+            let tool_progress = match &progress.data {
+                ProgressData::BashProgress {
+                    full_output,
+                    elapsed_time_seconds,
+                    total_lines,
+                    timeout_ms,
+                } => {
+                    // Truncate to last N chars to limit IPC payload
+                    let truncated = if full_output.len() > MAX_PROGRESS_OUTPUT_CHARS {
+                        full_output[full_output.len() - MAX_PROGRESS_OUTPUT_CHARS..].to_string()
+                    } else {
+                        full_output.clone()
+                    };
+                    Some(ToolProgress::Bash {
+                        full_output: truncated,
+                        elapsed_time_seconds: *elapsed_time_seconds,
+                        total_lines: *total_lines,
+                        timeout_ms: *timeout_ms,
+                    })
+                }
+                ProgressData::HookProgress {
+                    hook_event,
+                    hook_name,
+                    command,
+                } => Some(ToolProgress::Hook {
+                    hook_event: hook_event.clone(),
+                    hook_name: hook_name.clone(),
+                    command: command.clone(),
+                }),
+                ProgressData::McpProgress {
+                    status,
+                    server_name,
+                    tool_name,
+                    elapsed_time_ms,
+                } => Some(ToolProgress::Mcp {
+                    status: status.clone(),
+                    server_name: server_name.clone(),
+                    tool_name: tool_name.clone(),
+                    elapsed_time_ms: *elapsed_time_ms,
+                }),
+                ProgressData::WaitingForTask {
+                    task_description,
+                    task_type,
+                } => Some(ToolProgress::Waiting {
+                    task_description: task_description.clone(),
+                    task_type: task_type.clone(),
+                }),
+                // Skip agent progress and unknown types
+                ProgressData::AgentProgress {} | ProgressData::Unknown => None,
+            };
+
+            if let Some(tp) = tool_progress {
+                map.insert(progress.parent_tool_use_id.clone(), tp);
+            }
+        }
+    }
+
+    map
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -428,8 +501,15 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_progress_type() {
+        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"hello","elapsedTimeSeconds":1.5,"totalLines":10,"timeoutMs":120000}}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::Progress(_)));
+    }
+
+    #[test]
     fn test_parse_unknown_type_becomes_unknown() {
-        let json = r#"{"type":"progress","data":{"type":"bash_progress"}}"#;
+        let json = r#"{"type":"some_future_type","data":{}}"#;
         let entry = parse_entry(json).unwrap();
         assert!(matches!(entry, ChatHistoryEntry::Unknown));
     }
@@ -487,7 +567,7 @@ mod tests {
     #[test]
     fn test_mixed_entries_dispatch() {
         let user_json = r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"hi"},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#;
-        let progress_json = r#"{"type":"progress","data":{}}"#;
+        let progress_json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"output","elapsedTimeSeconds":1.0,"totalLines":5,"timeoutMs":120000}}"#;
         let system_json = r#"{"type":"system","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","subtype":"turn_duration","durationMs":500.0,"isMeta":true,"timestamp":"2025-01-01T00:00:01Z","uuid":"s1"}"#;
 
         let entries: Vec<ChatHistoryEntry> = vec![user_json, progress_json, system_json]
@@ -497,9 +577,88 @@ mod tests {
 
         assert_eq!(entries.len(), 3);
         let msgs = parse_entries_to_messages(entries);
-        // progress (Unknown) is filtered out, user + system remain
+        // progress is filtered out, user + system remain
         assert_eq!(msgs.len(), 2);
         assert_eq!(msgs[0].message_type, MessageType::User);
         assert_eq!(msgs[1].message_type, MessageType::System);
+    }
+
+    #[test]
+    fn test_extract_progress_map_bash() {
+        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"hello world","elapsedTimeSeconds":2.5,"totalLines":10,"timeoutMs":120000}}"#;
+        let entry = parse_entry(json).unwrap();
+        let map = extract_progress_map(&[entry]);
+        assert_eq!(map.len(), 1);
+        assert!(map.contains_key("tc1"));
+        match &map["tc1"] {
+            crate::models::chunks::ToolProgress::Bash { full_output, elapsed_time_seconds, .. } => {
+                assert_eq!(full_output, "hello world");
+                assert!((elapsed_time_seconds - 2.5).abs() < f64::EPSILON);
+            }
+            _ => panic!("Expected Bash progress"),
+        }
+    }
+
+    #[test]
+    fn test_extract_progress_map_last_wins() {
+        let json1 = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"first","elapsedTimeSeconds":1.0,"totalLines":1,"timeoutMs":120000}}"#;
+        let json2 = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"second","elapsedTimeSeconds":2.0,"totalLines":2,"timeoutMs":120000}}"#;
+        let entries: Vec<ChatHistoryEntry> = vec![json1, json2]
+            .into_iter()
+            .map(|j| parse_entry(j).unwrap())
+            .collect();
+        let map = extract_progress_map(&entries);
+        assert_eq!(map.len(), 1);
+        match &map["tc1"] {
+            crate::models::chunks::ToolProgress::Bash { full_output, .. } => {
+                assert_eq!(full_output, "second");
+            }
+            _ => panic!("Expected Bash progress"),
+        }
+    }
+
+    #[test]
+    fn test_parse_real_world_bash_progress() {
+        // Exact format from a real Claude Code session — includes extra fields
+        let json = r#"{"parentUuid":"5561cd77","isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"abc","version":"2.1.44","gitBranch":"main","slug":"test","type":"progress","data":{"type":"bash_progress","output":"short","fullOutput":"full line1\nfull line2","elapsedTimeSeconds":15,"totalLines":24,"timeoutMs":300000},"toolUseID":"bash-progress-13","parentToolUseID":"toolu_01BQ","uuid":"b6f7e044","timestamp":"2026-02-17T13:46:20.050Z"}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::Progress(_)));
+        let map = extract_progress_map(&[entry]);
+        assert_eq!(map.len(), 1);
+        assert!(map.contains_key("toolu_01BQ"));
+        match &map["toolu_01BQ"] {
+            crate::models::chunks::ToolProgress::Bash { full_output, elapsed_time_seconds, total_lines, timeout_ms } => {
+                assert_eq!(full_output, "full line1\nfull line2");
+                assert!((*elapsed_time_seconds - 15.0).abs() < f64::EPSILON);
+                assert_eq!(*total_lines, 24);
+                assert_eq!(*timeout_ms, 300000);
+            }
+            _ => panic!("Expected Bash progress"),
+        }
+    }
+
+    #[test]
+    fn test_parse_real_world_hook_progress() {
+        let json = r#"{"parentUuid":"5bddd7aa","isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"abc","version":"2.1.44","gitBranch":"main","slug":"test","type":"progress","data":{"type":"hook_progress","hookEvent":"PostToolUse","hookName":"PostToolUse:Read","command":"callback"},"parentToolUseID":"toolu_01Hvq","toolUseID":"toolu_01Hvq","timestamp":"2026-02-17T13:59:11.825Z","uuid":"55dd9dc5"}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::Progress(_)));
+        let map = extract_progress_map(&[entry]);
+        assert_eq!(map.len(), 1);
+        match &map["toolu_01Hvq"] {
+            crate::models::chunks::ToolProgress::Hook { hook_event, hook_name, command } => {
+                assert_eq!(hook_event, "PostToolUse");
+                assert_eq!(hook_name, "PostToolUse:Read");
+                assert_eq!(command, "callback");
+            }
+            _ => panic!("Expected Hook progress"),
+        }
+    }
+
+    #[test]
+    fn test_extract_progress_map_skips_agent_progress() {
+        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"agent_progress"}}"#;
+        let entry = parse_entry(json).unwrap();
+        let map = extract_progress_map(&[entry]);
+        assert!(map.is_empty());
     }
 }

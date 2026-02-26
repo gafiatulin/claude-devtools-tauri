@@ -842,6 +842,7 @@ pub fn scan_session_detail(
 
     // Parse the JSONL file
     let entries = crate::jsonl::reader::read_jsonl_file(&session_path)?;
+    let progress_map = crate::jsonl::parser::extract_progress_map(&entries);
     let messages = crate::jsonl::parser::parse_entries_to_messages(entries);
 
     // Scan subagents
@@ -856,7 +857,8 @@ pub fn scan_session_detail(
     )?;
 
     // Build and enhance chunks from parsed messages and processes
-    let raw_chunks = crate::parser::chunk_builder::build_chunks(&messages, &processes);
+    let raw_chunks =
+        crate::parser::chunk_builder::build_chunks(&messages, &processes, &progress_map);
     let chunks = crate::parser::chunk_builder::enhance_chunks(raw_chunks, &messages);
 
     // Derive session metrics from chunk metrics to avoid a separate pass over messages.
@@ -1216,7 +1218,8 @@ mod tests {
 
         // Phase 3: Build chunks
         let start = std::time::Instant::now();
-        let chunks = crate::parser::chunk_builder::build_chunks(&messages, &[]);
+        let chunks =
+            crate::parser::chunk_builder::build_chunks(&messages, &[], &std::collections::HashMap::new());
         let chunk_time = start.elapsed();
         println!("  Built {} chunks in {:?}", chunks.len(), chunk_time);
 

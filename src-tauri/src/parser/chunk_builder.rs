@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use crate::models::chunks::{
     AiChunkData, BaseChunkFields, Chunk, CompactChunkData, EnhancedAiChunkData, EnhancedChunk,
     EnhancedCompactChunkData, EnhancedSystemChunkData, EnhancedUserChunkData, Process,
-    SystemChunkData, ToolExecution, UserChunkData,
+    SystemChunkData, ToolExecution, ToolProgress, UserChunkData,
 };
 use crate::models::domain::{MessageCategory, SessionMetrics};
 use crate::models::messages::ParsedMessage;
@@ -21,14 +23,18 @@ use super::tool_linker;
 /// 6. Compact -> create CompactChunk
 /// 7. AI -> accumulate into current AIChunk; start new AIChunk on first AI after non-AI
 /// 8. Link processes to AIChunks by matching parentTaskId to tool calls
-pub fn build_chunks(messages: &[ParsedMessage], processes: &[Process]) -> Vec<Chunk> {
+pub fn build_chunks(
+    messages: &[ParsedMessage],
+    processes: &[Process],
+    progress_map: &HashMap<String, ToolProgress>,
+) -> Vec<Chunk> {
     let mut chunks: Vec<Chunk> = Vec::new();
     let mut current_ai_responses: Vec<ParsedMessage> = Vec::new();
     let mut current_ai_sidechain: Vec<ParsedMessage> = Vec::new();
     let mut chunk_counter: u32 = 0;
 
     // Pre-compute tool executions for linking
-    let tool_executions = tool_linker::link_tool_calls(messages);
+    let tool_executions = tool_linker::link_tool_calls(messages, progress_map);
 
     for msg in messages {
         let category = classify_message(msg);
@@ -545,7 +551,7 @@ mod tests {
             make_ai_msg("a3", "2025-01-01T00:00:04Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
 
         // Expected: User(u1), Ai(a1+a2), User(u2), Ai(a3)
         assert_eq!(chunks.len(), 4);
@@ -570,7 +576,7 @@ mod tests {
 
     #[test]
     fn test_build_chunks_empty() {
-        let chunks = build_chunks(&[], &[]);
+        let chunks = build_chunks(&[], &[], &HashMap::new());
         assert!(chunks.is_empty());
     }
 
@@ -581,7 +587,7 @@ mod tests {
             make_ai_msg("a2", "2025-01-01T00:00:01Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
         // All AI messages should be grouped into a single AI chunk
         assert_eq!(chunks.len(), 1);
         assert!(matches!(&chunks[0], Chunk::Ai(_)));
@@ -599,7 +605,7 @@ mod tests {
             make_user_msg("u2", "2025-01-01T00:00:03Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
         // Expected: User(u1), Ai(a1), Compact(c1), User(u2)
         assert_eq!(chunks.len(), 4);
         assert!(matches!(&chunks[0], Chunk::User(_)));
@@ -616,7 +622,7 @@ mod tests {
             make_ai_msg("a1", "2025-01-01T00:00:02Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
         // System messages classified as HardNoise are skipped.
         // is_meta=true system is HardNoise because MessageType::System is always HardNoise
         // in the classifier.
@@ -634,7 +640,7 @@ mod tests {
             make_ai_msg("a2", "2025-01-01T00:00:01Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
         if let Chunk::Ai(data) = &chunks[0] {
             assert_eq!(data.base.metrics.input_tokens, 200); // 100 * 2
             assert_eq!(data.base.metrics.output_tokens, 100); // 50 * 2
@@ -652,7 +658,7 @@ mod tests {
             make_ai_msg("a1", "2025-01-01T00:00:01Z"),
         ];
 
-        let chunks = build_chunks(&messages, &[]);
+        let chunks = build_chunks(&messages, &[], &HashMap::new());
         let enhanced = enhance_chunks(chunks, &messages);
 
         assert_eq!(enhanced.len(), 2);

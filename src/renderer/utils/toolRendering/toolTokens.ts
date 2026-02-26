@@ -51,6 +51,7 @@ export function getToolContextTokens(linkedTool: LinkedToolItem): number {
  * Gets the status of a tool execution.
  */
 export function getToolStatus(linkedTool: LinkedToolItem): ItemStatus {
+  if (linkedTool.isOrphaned && linkedTool.progress) return 'pending';
   if (linkedTool.isOrphaned) return 'orphaned';
   if (linkedTool.result?.isError) return 'error';
   return 'ok';

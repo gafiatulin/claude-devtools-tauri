@@ -8,6 +8,8 @@ import type {
   Process,
   SemanticStep,
   SessionMetrics,
+  ToolExecution,
+  ToolProgress,
   ToolUseResultData,
 } from './data';
 export type { SemanticStep };
@@ -182,6 +184,8 @@ export interface LinkedToolItem {
   durationMs?: number;
   /** Whether this is an orphaned call (no result) */
   isOrphaned: boolean;
+  /** In-progress output data (only present for orphaned tool calls) */
+  progress?: ToolProgress;
   /** Model used for the assistant message containing this tool call */
   sourceModel?: string;
   /**
@@ -357,6 +361,8 @@ export interface AIGroup {
   metrics: SessionMetrics;
   /** All response messages (assistant + internal user messages) for accessing raw usage data */
   responses: ParsedMessage[];
+  /** Tool executions from the source chunk (carries progress data) */
+  toolExecutions?: ToolExecution[];
   /** Whether this is the last AI group in an ongoing session */
   isOngoing?: boolean;
 }

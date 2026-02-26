@@ -17,7 +17,7 @@ pub fn build_conversation_groups(
     let mut groups: Vec<ConversationGroup> = Vec::new();
     let mut group_counter: u32 = 0;
 
-    let tool_executions = tool_linker::link_tool_calls(messages);
+    let tool_executions = tool_linker::link_tool_calls(messages, &std::collections::HashMap::new());
     let task_executions = tool_linker::build_task_executions(messages, processes);
 
     let mut current_user_msg: Option<ParsedMessage> = None;

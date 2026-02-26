@@ -9,6 +9,7 @@ import React from 'react';
 import { type ItemStatus, StatusDot } from '../BaseItem';
 
 import { renderInput, renderOutput } from './renderHelpers';
+import { ToolProgressDisplay } from './ToolProgressDisplay';
 
 import type { LinkedToolItem } from '@renderer/types/groups';
 
@@ -60,6 +61,20 @@ export const DefaultToolViewer: React.FC<DefaultToolViewerProps> = ({ linkedTool
           >
             {renderOutput(linkedTool.result.content)}
           </div>
+        </div>
+      )}
+
+      {/* In-progress output */}
+      {linkedTool.isOrphaned && linkedTool.progress && (
+        <div>
+          <div
+            className="mb-1 flex items-center gap-2 text-xs"
+            style={{ color: 'var(--tool-item-muted)' }}
+          >
+            Output (in progress)
+            <StatusDot status="pending" />
+          </div>
+          <ToolProgressDisplay progress={linkedTool.progress} />
         </div>
       )}
     </>

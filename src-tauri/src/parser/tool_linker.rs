@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::models::chunks::{Process, TaskExecution, ToolExecution};
+use crate::models::chunks::{Process, TaskExecution, ToolExecution, ToolProgress};
 use crate::models::domain::MessageType;
 use crate::models::messages::{ParsedMessage, ToolCall, ToolResult};
 
@@ -11,7 +11,10 @@ use crate::models::messages::{ParsedMessage, ToolCall, ToolResult};
 /// 2. `sourceToolUseID` field on user entries
 ///
 /// Computes timing: startTime (tool call message time), endTime (tool result message time), durationMs.
-pub fn link_tool_calls(messages: &[ParsedMessage]) -> Vec<ToolExecution> {
+pub fn link_tool_calls(
+    messages: &[ParsedMessage],
+    progress_map: &HashMap<String, ToolProgress>,
+) -> Vec<ToolExecution> {
     // Build a map of tool call ID -> (ToolCall, timestamp)
     let mut tool_call_map: HashMap<String, (ToolCall, String)> = HashMap::new();
 
@@ -43,6 +46,7 @@ pub fn link_tool_calls(messages: &[ParsedMessage]) -> Vec<ToolExecution> {
                     start_time: call_time.clone(),
                     end_time: Some(msg.timestamp.clone()),
                     duration_ms: Some(duration_ms),
+                    progress: None,
                 });
                 matched_ids.insert(tr.tool_use_id.clone());
             }
@@ -74,6 +78,7 @@ pub fn link_tool_calls(messages: &[ParsedMessage]) -> Vec<ToolExecution> {
                         start_time: call_time.clone(),
                         end_time: Some(msg.timestamp.clone()),
                         duration_ms: Some(duration_ms),
+                        progress: None,
                     });
                     matched_ids.insert(source_id.clone());
                 }
@@ -81,7 +86,7 @@ pub fn link_tool_calls(messages: &[ParsedMessage]) -> Vec<ToolExecution> {
         }
     }
 
-    // Add unmatched tool calls (no result found yet)
+    // Add unmatched tool calls (no result found yet) — attach progress if available
     for (id, (tool_call, call_time)) in &tool_call_map {
         if !matched_ids.contains(id) {
             executions.push(ToolExecution {
@@ -90,6 +95,7 @@ pub fn link_tool_calls(messages: &[ParsedMessage]) -> Vec<ToolExecution> {
                 start_time: call_time.clone(),
                 end_time: None,
                 duration_ms: None,
+                progress: progress_map.get(id).cloned(),
             });
         }
     }

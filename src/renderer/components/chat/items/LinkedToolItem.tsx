@@ -68,6 +68,7 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
   const summary = getToolSummary(linkedTool.name, linkedTool.input);
   const elementRef = useRef<HTMLDivElement>(null);
 
+
   // Combined ref callback - handles both internal ref and external registration
   const handleRef = (el: HTMLDivElement | null): void => {
     // Update internal ref
@@ -186,8 +187,8 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
         {/* Error output for Write tool */}
         {showWriteError && <ToolErrorDisplay linkedTool={linkedTool} />}
 
-        {/* Orphaned indicator */}
-        {linkedTool.isOrphaned && (
+        {/* Orphaned indicator (no progress data) */}
+        {linkedTool.isOrphaned && !linkedTool.progress && (
           <div
             className="flex items-center gap-2 text-xs italic"
             style={{ color: 'var(--tool-item-muted)' }}

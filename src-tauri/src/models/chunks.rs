@@ -127,6 +127,53 @@ pub struct ToolExecution {
     pub end_time: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<ToolProgress>,
+}
+
+// =============================================================================
+// Tool Progress (in-progress tool output)
+// =============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ToolProgress {
+    #[serde(rename = "bash")]
+    Bash {
+        #[serde(rename = "fullOutput")]
+        full_output: String,
+        #[serde(rename = "elapsedTimeSeconds")]
+        elapsed_time_seconds: f64,
+        #[serde(rename = "totalLines")]
+        total_lines: u64,
+        #[serde(rename = "timeoutMs")]
+        timeout_ms: u64,
+    },
+    #[serde(rename = "hook")]
+    Hook {
+        #[serde(rename = "hookEvent")]
+        hook_event: String,
+        #[serde(rename = "hookName")]
+        hook_name: String,
+        command: String,
+    },
+    #[serde(rename = "mcp")]
+    Mcp {
+        status: String,
+        #[serde(rename = "serverName")]
+        server_name: String,
+        #[serde(rename = "toolName")]
+        tool_name: String,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "elapsedTimeMs")]
+        elapsed_time_ms: Option<f64>,
+    },
+    #[serde(rename = "waiting")]
+    Waiting {
+        #[serde(rename = "taskDescription")]
+        task_description: String,
+        #[serde(rename = "taskType")]
+        task_type: String,
+    },
 }
 
 // =============================================================================

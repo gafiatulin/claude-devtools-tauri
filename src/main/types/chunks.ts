@@ -156,7 +156,30 @@ export interface ToolExecution {
   endTime?: Date;
   /** Duration in milliseconds */
   durationMs?: number;
+  /** In-progress output data (only present for orphaned tool calls) */
+  progress?: ToolProgress;
 }
+
+/**
+ * In-progress tool output data from Claude Code progress JSONL entries.
+ */
+export type ToolProgress =
+  | {
+      type: 'bash';
+      fullOutput: string;
+      elapsedTimeSeconds: number;
+      totalLines: number;
+      timeoutMs: number;
+    }
+  | { type: 'hook'; hookEvent: string; hookName: string; command: string }
+  | {
+      type: 'mcp';
+      status: string;
+      serverName: string;
+      toolName: string;
+      elapsedTimeMs?: number;
+    }
+  | { type: 'waiting'; taskDescription: string; taskType: string };
 
 // =============================================================================
 // Conversation Group Types (Simplified Grouping Strategy)

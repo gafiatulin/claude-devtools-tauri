@@ -41,6 +41,8 @@ export type {
   SemanticStep,
   SessionDetail,
   SubagentDetail,
+  ToolExecution,
+  ToolProgress,
 } from '@shared/types';
 
 // Chunk type guards

@@ -158,7 +158,7 @@ pub fn get_subagent_detail(
     };
 
     // Build chunks from the subagent's messages
-    let chunks = crate::parser::chunk_builder::build_chunks(&process.messages, &[]);
+    let chunks = crate::parser::chunk_builder::build_chunks(&process.messages, &[], &std::collections::HashMap::new());
     let enhanced_chunks = crate::parser::chunk_builder::enhance_chunks(chunks, &process.messages);
 
     Ok(Some(SubagentDetail {

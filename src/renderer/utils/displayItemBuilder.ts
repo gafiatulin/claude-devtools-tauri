@@ -96,10 +96,11 @@ export function buildDisplayItems(
   lastOutput: AIGroupLastOutput | null,
   subagents: Process[],
   responses?: ParsedMessage[],
-  precedingSlash?: PrecedingSlashInfo
+  precedingSlash?: PrecedingSlashInfo,
+  prebuiltLinkedTools?: Map<string, LinkedToolItem>
 ): AIGroupDisplayItem[] {
   const displayItems: AIGroupDisplayItem[] = [];
-  const linkedTools = linkToolCallsToResults(steps, responses);
+  const linkedTools = prebuiltLinkedTools ?? linkToolCallsToResults(steps, responses);
 
   // Build set of Task IDs that have associated subagents
   // This prevents duplicate display of Task tool calls when subagents are shown

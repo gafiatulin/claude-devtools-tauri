@@ -117,8 +117,8 @@ mod tests {
             r#"{"type":"file-history-snapshot","messageId":"m1","snapshot":{"messageId":"m1","trackedFileBackups":{},"timestamp":"2025-01-01T00:00:00Z"},"isSnapshotUpdate":false}"#,
             // queue-operation
             r#"{"type":"queue-operation","timestamp":"2025-01-01T00:00:04Z","uuid":"q1","operation":"enqueue"}"#,
-            // progress (unknown type - should parse as Unknown)
-            r#"{"type":"progress","parentUuid":"u1","isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"abc","version":"2.1","gitBranch":"main","data":{"type":"bash_progress"}}"#,
+            // progress (now parsed as Progress variant)
+            r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"out","elapsedTimeSeconds":1.0,"totalLines":1,"timeoutMs":120000}}"#,
         ];
 
         for (i, case) in cases.iter().enumerate() {
@@ -126,9 +126,9 @@ mod tests {
             assert!(result.is_ok(), "Failed to parse case {}: {:?}", i, result.err());
         }
 
-        // Verify the progress entry is parsed as Unknown
+        // Verify the progress entry is parsed as Progress
         let progress = super::super::parser::parse_entry(cases[6]).unwrap();
-        assert!(matches!(progress, crate::models::jsonl::ChatHistoryEntry::Unknown));
+        assert!(matches!(progress, crate::models::jsonl::ChatHistoryEntry::Progress(_)));
     }
 
     /// Real-world: file-history-snapshot with object values in trackedFileBackups.
@@ -174,7 +174,7 @@ mod tests {
 
         let lines = [
             r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"hello"},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#,
-            r#"{"type":"progress","data":{}}"#, // unknown — skipped
+            r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"bash_progress","fullOutput":"","elapsedTimeSeconds":0,"totalLines":0,"timeoutMs":0}}"#, // progress — skipped in message parsing
             r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"world"},"timestamp":"2025-01-01T00:00:01Z","uuid":"u2"}"#,
         ];
         {

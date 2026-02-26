@@ -51,7 +51,7 @@ export function enhanceAIGroup(
   // Pass isOngoing to findLastOutput - if ongoing, it returns 'ongoing' type instead of forcing a last output
   const lastOutput = findLastOutput(aiGroup.steps, aiGroup.isOngoing ?? false);
   // Pass responses to linkToolCallsToResults for slash instruction extraction
-  const linkedTools = linkToolCallsToResults(aiGroup.steps, aiGroup.responses);
+  const linkedTools = linkToolCallsToResults(aiGroup.steps, aiGroup.responses, aiGroup.toolExecutions);
   // Attach main session impact tokens to subagents (Task tool call/result tokens)
   attachMainSessionImpact(aiGroup.processes, linkedTools);
   const displayItems = buildDisplayItems(
@@ -59,7 +59,8 @@ export function enhanceAIGroup(
     lastOutput,
     aiGroup.processes,
     aiGroup.responses,
-    precedingSlash
+    precedingSlash,
+    linkedTools
   );
   const summary = buildSummary(displayItems);
   const mainModel = extractMainModel(aiGroup.steps);

@@ -7,7 +7,7 @@
 
 import { estimateTokens, formatToolInput, formatToolResult, toDate } from './aiGroupHelpers';
 
-import type { ParsedMessage, SemanticStep } from '../types/data';
+import type { ParsedMessage, SemanticStep, ToolExecution, ToolProgress } from '../types/data';
 import type { LinkedToolItem } from '../types/groups';
 
 /**
@@ -27,7 +27,8 @@ import type { LinkedToolItem } from '../types/groups';
  */
 export function linkToolCallsToResults(
   steps: SemanticStep[],
-  responses?: ParsedMessage[]
+  responses?: ParsedMessage[],
+  toolExecutions?: ToolExecution[]
 ): Map<string, LinkedToolItem> {
   const linkedTools = new Map<string, LinkedToolItem>();
 
@@ -39,6 +40,16 @@ export function linkToolCallsToResults(
   for (const step of steps) {
     if (step.type === 'tool_result') {
       resultStepsById.set(step.id, step);
+    }
+  }
+
+  // Build a map of tool progress from toolExecutions (for orphaned tool calls)
+  const progressMap = new Map<string, ToolProgress>();
+  if (toolExecutions) {
+    for (const te of toolExecutions) {
+      if (te.progress) {
+        progressMap.set(te.toolCall.id, te.progress);
+      }
     }
   }
 
@@ -83,6 +94,8 @@ export function linkToolCallsToResults(
     // This reflects what actually enters the context window (not proportioned output_tokens)
     const callTokens = estimateTokens(toolName + JSON.stringify(toolInput));
 
+    const isOrphaned = !resultStep;
+
     const linkedItem: LinkedToolItem = {
       id: toolCallId,
       name: toolName,
@@ -103,7 +116,8 @@ export function linkToolCallsToResults(
       startTime: callStartTime,
       endTime: resultStartTime,
       durationMs: resultStartTime ? resultStartTime.getTime() - callStartTime.getTime() : undefined,
-      isOrphaned: !resultStep,
+      isOrphaned,
+      progress: isOrphaned ? progressMap.get(toolCallId) : undefined,
       skillInstructions,
       skillInstructionsTokenCount: skillInstructions
         ? estimateTokens(skillInstructions)

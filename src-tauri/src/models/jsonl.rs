@@ -128,7 +128,9 @@ pub enum ChatHistoryEntry {
     FileHistorySnapshot(FileHistorySnapshotEntry),
     #[serde(rename = "queue-operation")]
     QueueOperation(QueueOperationEntry),
-    /// Catch-all for unknown entry types (e.g., "progress").
+    #[serde(rename = "progress")]
+    Progress(ProgressEntry),
+    /// Catch-all for unknown entry types.
     /// Prevents deserialization failures when new entry types appear.
     #[serde(other)]
     Unknown,
@@ -263,6 +265,65 @@ pub struct QueueOperationEntry {
     pub operation: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProgressEntry {
+    #[serde(rename = "parentToolUseID")]
+    pub parent_tool_use_id: String,
+    #[serde(rename = "toolUseID")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_use_id: Option<String>,
+    pub data: ProgressData,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ProgressData {
+    #[serde(rename = "bash_progress")]
+    BashProgress {
+        #[serde(default, rename = "fullOutput")]
+        full_output: String,
+        #[serde(default, rename = "elapsedTimeSeconds")]
+        elapsed_time_seconds: f64,
+        #[serde(default, rename = "totalLines")]
+        total_lines: u64,
+        #[serde(default, rename = "timeoutMs")]
+        timeout_ms: u64,
+    },
+    #[serde(rename = "hook_progress")]
+    HookProgress {
+        #[serde(default, rename = "hookEvent")]
+        hook_event: String,
+        #[serde(default, rename = "hookName")]
+        hook_name: String,
+        #[serde(default)]
+        command: String,
+    },
+    #[serde(rename = "mcp_tool_progress")]
+    McpProgress {
+        #[serde(default)]
+        status: String,
+        #[serde(default, rename = "serverName")]
+        server_name: String,
+        #[serde(default, rename = "toolName")]
+        tool_name: String,
+        #[serde(skip_serializing_if = "Option::is_none", rename = "elapsedTimeMs")]
+        elapsed_time_ms: Option<f64>,
+    },
+    #[serde(rename = "waiting_for_task")]
+    WaitingForTask {
+        #[serde(default, rename = "taskDescription")]
+        task_description: String,
+        #[serde(default, rename = "taskType")]
+        task_type: String,
+    },
+    #[serde(rename = "agent_progress")]
+    AgentProgress {},
+    /// Catch-all for unknown progress data types.
+    #[serde(other)]
+    Unknown,
+}
+
 // =============================================================================
 // Content helpers
 // =============================================================================
@@ -290,5 +351,13 @@ impl ChatHistoryEntry {
             self,
             ChatHistoryEntry::User(_) | ChatHistoryEntry::Assistant(_) | ChatHistoryEntry::System(_)
         )
+    }
+
+    /// Returns the parent tool use ID if this is a Progress entry.
+    pub fn as_progress(&self) -> Option<&ProgressEntry> {
+        match self {
+            ChatHistoryEntry::Progress(p) => Some(p),
+            _ => None,
+        }
     }
 }
