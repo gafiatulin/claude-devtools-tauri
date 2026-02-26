@@ -25,7 +25,7 @@ interface ChatScrollContainerProps {
       index: number;
       start: number;
     }>;
-    measureElement: (el: Element) => void;
+    measureElement: (el: Element | null) => void;
   };
   allContextInjections: ContextInjection[];
   isContextPanelVisible: boolean;
@@ -42,7 +42,7 @@ interface ChatScrollContainerProps {
   registerToolRef: (toolId: string, el: HTMLElement | null) => void;
 }
 
-export const ChatScrollContainer = React.memo(function ChatScrollContainer({
+export const ChatScrollContainer = function ChatScrollContainer({
   scrollContainerRef,
   conversation,
   shouldVirtualize,
@@ -112,7 +112,7 @@ export const ChatScrollContainer = React.memo(function ChatScrollContainer({
                 return (
                   <div
                     key={virtualRow.key}
-                    ref={(el) => { if (el) rowVirtualizer.measureElement(el); }}
+                    ref={rowVirtualizer.measureElement}
                     data-index={virtualRow.index}
                     className="pb-8"
                     style={{
@@ -159,4 +159,4 @@ export const ChatScrollContainer = React.memo(function ChatScrollContainer({
       </div>
     </div>
   );
-});
+}

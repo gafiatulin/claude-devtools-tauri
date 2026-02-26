@@ -4,7 +4,7 @@
  * and the ensureGroupVisible helper for scroll-to-index navigation.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 
@@ -39,7 +39,7 @@ export function useVirtualChatList({
   scrollContainerRef,
   virtualizationThreshold = 120,
   estimatedItemHeight = 260,
-  overscan = 8,
+  overscan = 15,
 }: UseVirtualChatListParams): UseVirtualChatListResult {
   const shouldVirtualize = (conversation?.items.length ?? 0) >= virtualizationThreshold;
 
@@ -59,8 +59,17 @@ export function useVirtualChatList({
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => estimatedItemHeight,
     overscan,
-    measureElement: (element) => element.getBoundingClientRect().height,
   });
+
+  // Force recalculation after the scroll container mounts.
+  // The virtualizer's internal onChange may not trigger a parent re-render
+  // (e.g., when ChatScrollContainer props haven't changed by reference),
+  // so we explicitly force a recalculation once the scroll element is available.
+  useEffect(() => {
+    if (shouldVirtualize && scrollContainerRef.current && rowVirtualizer.getVirtualItems().length === 0) {
+      rowVirtualizer.measure();
+    }
+  }, [shouldVirtualize, rowVirtualizer, scrollContainerRef]);
 
   const ensureGroupVisible = useCallback(
     async (groupId: string) => {
