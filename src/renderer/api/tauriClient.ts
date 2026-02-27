@@ -355,4 +355,7 @@ export class TauriClient implements ElectronAPI {
     }
   };
 
+  readBackgroundTaskOutput = (taskId: string): Promise<{ content: string; isRunning: boolean } | null> =>
+    invoke<{ content: string; isRunning: boolean } | null>('read_background_task_output', { taskId });
+
 }

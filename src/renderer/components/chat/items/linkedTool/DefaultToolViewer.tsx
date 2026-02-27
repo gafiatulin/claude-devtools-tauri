@@ -2,12 +2,14 @@
  * DefaultToolViewer
  *
  * Default rendering for tools that don't have specialized viewers.
+ * Includes background task output streaming for Bash run_in_background commands.
  */
 
 import React from 'react';
 
 import { type ItemStatus, StatusDot } from '../BaseItem';
 
+import { BackgroundTaskOutput, extractBackgroundTaskId } from './BackgroundTaskOutput';
 import { renderInput, renderOutput } from './renderHelpers';
 import { ToolProgressDisplay } from './ToolProgressDisplay';
 
@@ -19,6 +21,8 @@ interface DefaultToolViewerProps {
 }
 
 export const DefaultToolViewer: React.FC<DefaultToolViewerProps> = ({ linkedTool, status }) => {
+  const backgroundTaskId = extractBackgroundTaskId(linkedTool);
+
   return (
     <>
       {/* Input Section */}
@@ -63,6 +67,9 @@ export const DefaultToolViewer: React.FC<DefaultToolViewerProps> = ({ linkedTool
           </div>
         </div>
       )}
+
+      {/* Background task streaming output */}
+      {backgroundTaskId && <BackgroundTaskOutput taskId={backgroundTaskId} active={true} />}
 
       {/* In-progress output */}
       {linkedTool.isOrphaned && linkedTool.progress && (

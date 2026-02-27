@@ -245,6 +245,15 @@ export function getToolSummary(toolName: string, input: Record<string, unknown>)
       return 'Send message';
     }
 
+    case 'TaskOutput': {
+      const taskId = input.task_id as string | undefined;
+      const block = input.block as boolean | undefined;
+      if (taskId) {
+        return block === true ? `${truncate(taskId, 40)} (blocking)` : truncate(taskId, 45);
+      }
+      return 'TaskOutput';
+    }
+
     case 'TeamDelete':
       return 'Delete team';
 

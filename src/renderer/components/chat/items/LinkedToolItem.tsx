@@ -35,6 +35,7 @@ import {
   EditToolViewer,
   ReadToolViewer,
   SkillToolViewer,
+  TaskOutputToolViewer,
   ToolErrorDisplay,
   WriteToolViewer,
 } from './linkedTool';
@@ -140,7 +141,9 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
   const useWriteViewer =
     linkedTool.name === 'Write' && hasWriteContent(linkedTool) && !linkedTool.result?.isError;
   const useSkillViewer = linkedTool.name === 'Skill' && hasSkillInstructions(linkedTool);
-  const useDefaultViewer = !useReadViewer && !useEditViewer && !useWriteViewer && !useSkillViewer;
+  const useTaskOutputViewer = linkedTool.name === 'TaskOutput';
+  const useDefaultViewer =
+    !useReadViewer && !useEditViewer && !useWriteViewer && !useSkillViewer && !useTaskOutputViewer;
 
   // Check if we should show error display for Read/Write tools
   const showReadError = linkedTool.name === 'Read' && linkedTool.result?.isError;
@@ -177,6 +180,9 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
 
         {/* Skill tool with instructions */}
         {useSkillViewer && <SkillToolViewer linkedTool={linkedTool} />}
+
+        {/* TaskOutput tool */}
+        {useTaskOutputViewer && <TaskOutputToolViewer linkedTool={linkedTool} status={status} />}
 
         {/* Default rendering for other tools */}
         {useDefaultViewer && <DefaultToolViewer linkedTool={linkedTool} status={status} />}

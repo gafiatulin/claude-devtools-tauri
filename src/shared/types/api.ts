@@ -239,4 +239,7 @@ export interface ElectronAPI {
     projectRoot?: string
   ) => Promise<{ success: boolean; error?: string }>;
   openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Background task output
+  readBackgroundTaskOutput: (taskId: string) => Promise<{ content: string; isRunning: boolean } | null>;
 }

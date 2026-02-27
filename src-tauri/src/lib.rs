@@ -167,6 +167,7 @@ pub fn run() {
             commands::shell::open_external,
             commands::shell::get_app_version,
             commands::shell::scroll_to_line,
+            commands::shell::read_background_task_output,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

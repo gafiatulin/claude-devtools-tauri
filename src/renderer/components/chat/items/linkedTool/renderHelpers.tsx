@@ -168,6 +168,27 @@ export function renderInput(toolName: string, input: Record<string, unknown>): R
     );
   }
 
+  // Special rendering for TaskOutput tool
+  if (toolName === 'TaskOutput') {
+    const taskId = input.task_id as string | undefined;
+    const block = input.block as boolean | undefined;
+    const timeout = input.timeout as number | undefined;
+
+    return (
+      <div style={{ color: COLOR_TEXT }}>
+        <div className="font-mono">{taskId ?? 'unknown'}</div>
+        {(block !== undefined || timeout !== undefined) && (
+          <div className="mt-1 text-xs" style={{ color: COLOR_TEXT_MUTED }}>
+            {block !== undefined && `block: ${String(block)}`}
+            {block !== undefined && timeout !== undefined && ', '}
+            {timeout !== undefined &&
+              `timeout: ${timeout < 1000 ? `${timeout}ms` : timeout < 60000 ? `${(timeout / 1000).toFixed(1)}s` : `${(timeout / 60000).toFixed(1)}m`}`}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Default: JSON format
   return (
     <pre className="whitespace-pre-wrap break-all" style={{ color: COLOR_TEXT }}>
