@@ -159,17 +159,31 @@ fn extract_session_id(path: &Path) -> String {
         .unwrap_or("unknown")
         .to_string();
 
-    // If this looks like a nested session dir structure, use the parent dir name
+    // If the file stem itself looks like a UUID, use it directly (top-level format)
+    if looks_like_uuid(&file_stem) {
+        return file_stem;
+    }
+
+    // Otherwise check for nested session dir structure: {uuid}/something.jsonl
     if let Some(parent) = path.parent() {
         if let Some(parent_name) = parent.file_name().and_then(|n| n.to_str()) {
-            // If the parent looks like a UUID (contains hyphens and is long), use it
-            if parent_name.len() > 30 && parent_name.contains('-') {
+            if looks_like_uuid(parent_name) {
                 return parent_name.to_string();
             }
         }
     }
 
     file_stem
+}
+
+/// Check if a string looks like a UUID (8-4-4-4-12 hex format).
+fn looks_like_uuid(s: &str) -> bool {
+    // UUIDs are exactly 36 chars: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    if s.len() != 36 {
+        return false;
+    }
+    let bytes = s.as_bytes();
+    bytes[8] == b'-' && bytes[13] == b'-' && bytes[18] == b'-' && bytes[23] == b'-'
 }
 
 /// Search a single session JSONL file line by line.
