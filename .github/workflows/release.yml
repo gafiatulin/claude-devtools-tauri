@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release
+    name: Build
     runs-on: macos-26
     strategy:
       matrix:
@@ -42,9 +42,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Claude DevTools ${{ github.ref_name }}"
-          releaseBody: "See the [changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
-          releaseDraft: true
-          prerelease: false
           args: --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: artifacts-${{ matrix.target }}
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Claude DevTools ${{ github.ref_name }}"
+          draft: true
+          files: "**/*.dmg"
+          generate_release_notes: true
