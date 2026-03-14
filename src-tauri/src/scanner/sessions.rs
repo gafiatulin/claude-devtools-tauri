@@ -209,6 +209,7 @@ fn scan_session_metadata_with_meta(
             phase_breakdown: None,
             slug: None,
             has_plan_content: None,
+            session_name: None,
         });
     }
 
@@ -234,6 +235,7 @@ fn scan_session_metadata_with_meta(
         phase_breakdown: None,
         slug: deep.slug,
         has_plan_content: if deep.has_plan_content { Some(true) } else { None },
+        session_name: deep.session_name,
     })
 }
 
@@ -292,6 +294,7 @@ struct DeepMetadata {
     compaction_count: Option<u32>,
     slug: Option<String>,
     has_plan_content: bool,
+    session_name: Option<String>,
 }
 
 /// Parse a session JSONL file to extract deep metadata.
@@ -321,6 +324,7 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
                 compaction_count: None,
                 slug: None,
                 has_plan_content: false,
+                session_name: None,
             };
         }
     };
@@ -338,6 +342,7 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
     let mut compaction_count: u32 = 0;
     let mut slug: Option<String> = None;
     let mut has_plan_content: bool = false;
+    let mut session_name: Option<String> = None;
 
     for line_result in reader.lines() {
         let line = match line_result {
@@ -447,6 +452,14 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
                 last_user_is_genuine = false;
                 compaction_count += 1;
             }
+            "custom-title" => {
+                // Extract session name from /rename command
+                session_name = value
+                    .get("customTitle")
+                    .and_then(|t| t.as_str())
+                    .filter(|t| !t.is_empty())
+                    .map(|t| t.to_string());
+            }
             _ => {
                 last_entry_type = 4; // other
                 last_user_is_genuine = false;
@@ -499,6 +512,7 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
         } else {
             None
         },
+        session_name,
     }
 }
 

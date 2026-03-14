@@ -92,6 +92,9 @@ pub struct Session {
     pub slug: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub has_plan_content: Option<bool>,
+    /// Session name set via `/rename` (from custom-title JSONL entry).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -360,6 +363,7 @@ mod serde_tests {
             phase_breakdown: None,
             slug: None,
             has_plan_content: None,
+            session_name: None,
         };
 
         let json = serde_json::to_string(&session).unwrap();
@@ -441,6 +445,7 @@ mod serde_tests {
             phase_breakdown: None,
             slug: None,
             has_plan_content: None,
+            session_name: None,
         };
 
         let json = serde_json::to_string(&session).unwrap();

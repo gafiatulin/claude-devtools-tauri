@@ -257,6 +257,59 @@ export function getToolSummary(toolName: string, input: Record<string, unknown>)
     case 'TeamDelete':
       return 'Delete team';
 
+    case 'Agent': {
+      const description = input.description as string | undefined;
+      const subagentType = input.subagent_type as string | undefined;
+      const typeStr = subagentType ? `${subagentType} - ` : '';
+      if (description) return `${typeStr}${truncate(description, 40)}`;
+      return subagentType ?? 'Agent';
+    }
+
+    case 'AskUserQuestion': {
+      const question = input.question as string | undefined;
+      if (question) return truncate(question, 50);
+      return 'Ask user';
+    }
+
+    case 'EnterWorktree':
+      return 'Enter worktree';
+
+    case 'ExitWorktree':
+      return 'Exit worktree';
+
+    case 'EnterPlanMode':
+      return 'Enter plan mode';
+
+    case 'ExitPlanMode':
+      return 'Exit plan mode';
+
+    case 'CronCreate': {
+      const schedule = input.schedule as string | undefined;
+      const prompt = input.prompt as string | undefined;
+      if (prompt) return `Create: ${truncate(prompt, 40)}`;
+      if (schedule) return `Create: ${schedule}`;
+      return 'Create cron';
+    }
+
+    case 'CronDelete': {
+      const cronId = input.id as string | undefined;
+      return cronId ? `Delete #${cronId}` : 'Delete cron';
+    }
+
+    case 'CronList':
+      return 'List crons';
+
+    case 'ToolSearch': {
+      const query = input.query as string | undefined;
+      if (query) return `"${truncate(query, 40)}"`;
+      return 'ToolSearch';
+    }
+
+    case 'TaskStop': {
+      const taskId = input.task_id as string | undefined;
+      return taskId ? `Stop ${truncate(taskId, 40)}` : 'Stop task';
+    }
+
     default: {
       // For unknown tools, try to extract a meaningful summary
       const keys = Object.keys(input);

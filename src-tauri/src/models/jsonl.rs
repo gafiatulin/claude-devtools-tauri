@@ -130,6 +130,14 @@ pub enum ChatHistoryEntry {
     QueueOperation(QueueOperationEntry),
     #[serde(rename = "progress")]
     Progress(ProgressEntry),
+    #[serde(rename = "custom-title")]
+    CustomTitle(CustomTitleEntry),
+    #[serde(rename = "agent-color")]
+    AgentColor(AgentColorEntry),
+    #[serde(rename = "agent-name")]
+    AgentName(AgentNameEntry),
+    #[serde(rename = "last-prompt")]
+    LastPrompt(LastPromptEntry),
     /// Catch-all for unknown entry types.
     /// Prevents deserialization failures when new entry types appear.
     #[serde(other)]
@@ -184,6 +192,9 @@ pub struct UserEntry {
     pub source_tool_assistant_uuid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_content: Option<String>,
+    /// True for machine-generated context (not real user input).
+    #[serde(default)]
+    pub is_visible_in_transcript_only: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -223,6 +234,12 @@ pub struct SystemEntry {
     /// Compaction metadata for compact_boundary subtype.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compact_metadata: Option<serde_json::Value>,
+    /// UUID of the last real message before compaction (on compact_boundary entries).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logical_parent_uuid: Option<String>,
+    /// True if this entry represents an API error.
+    #[serde(default)]
+    pub is_api_error_message: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -319,9 +336,61 @@ pub enum ProgressData {
     },
     #[serde(rename = "agent_progress")]
     AgentProgress {},
+    #[serde(rename = "query_update")]
+    QueryUpdate {},
+    #[serde(rename = "search_results_received")]
+    SearchResultsReceived {},
     /// Catch-all for unknown progress data types.
     #[serde(other)]
     Unknown,
+}
+
+// =============================================================================
+// Metadata Entry Types
+// =============================================================================
+
+/// Session title set via `/rename` command.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomTitleEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub custom_title: String,
+}
+
+/// Agent color assignment (hex color for sub-agent display).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentColorEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub agent_color: String,
+}
+
+/// Agent name assignment (display name for sub-agent).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentNameEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub agent_name: String,
+}
+
+/// Last prompt stored for session resumption.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LastPromptEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
+    pub last_prompt: String,
 }
 
 // =============================================================================
@@ -351,6 +420,14 @@ impl ChatHistoryEntry {
             self,
             ChatHistoryEntry::User(_) | ChatHistoryEntry::Assistant(_) | ChatHistoryEntry::System(_)
         )
+    }
+
+    /// Returns the custom title if this is a CustomTitle entry.
+    pub fn as_custom_title(&self) -> Option<&str> {
+        match self {
+            ChatHistoryEntry::CustomTitle(e) => Some(&e.custom_title),
+            _ => None,
+        }
     }
 
     /// Returns the parent tool use ID if this is a Progress entry.

@@ -142,8 +142,13 @@ fn entry_to_parsed_message(entry: ChatHistoryEntry) -> Option<ParsedMessage> {
             is_compact_summary: None,
             plan_content: None,
         }),
-        // Progress and unknown entry types are silently skipped.
-        ChatHistoryEntry::Progress(_) | ChatHistoryEntry::Unknown => None,
+        // Metadata, progress, and unknown entry types are silently skipped.
+        ChatHistoryEntry::Progress(_)
+        | ChatHistoryEntry::CustomTitle(_)
+        | ChatHistoryEntry::AgentColor(_)
+        | ChatHistoryEntry::AgentName(_)
+        | ChatHistoryEntry::LastPrompt(_)
+        | ChatHistoryEntry::Unknown => None,
     }
 }
 
@@ -361,8 +366,11 @@ pub fn extract_progress_map(entries: &[ChatHistoryEntry]) -> HashMap<String, Too
                     task_description: task_description.clone(),
                     task_type: task_type.clone(),
                 }),
-                // Skip agent progress and unknown types
-                ProgressData::AgentProgress {} | ProgressData::Unknown => None,
+                // Skip agent progress, query/search updates, and unknown types
+                ProgressData::AgentProgress {}
+                | ProgressData::QueryUpdate {}
+                | ProgressData::SearchResultsReceived {}
+                | ProgressData::Unknown => None,
             };
 
             if let Some(tp) = tool_progress {
@@ -660,5 +668,92 @@ mod tests {
         let entry = parse_entry(json).unwrap();
         let map = extract_progress_map(&[entry]);
         assert!(map.is_empty());
+    }
+
+    // =========================================================================
+    // New entry types
+    // =========================================================================
+
+    #[test]
+    fn test_parse_custom_title_entry() {
+        let json = r#"{"type":"custom-title","customTitle":"my session name","timestamp":"2025-01-01T00:00:00Z","uuid":"ct1"}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::CustomTitle(_)));
+        assert_eq!(entry.as_custom_title(), Some("my session name"));
+
+        // CustomTitle entries should not produce parsed messages
+        let msgs = parse_entries_to_messages(vec![entry]);
+        assert!(msgs.is_empty());
+    }
+
+    #[test]
+    fn test_parse_agent_color_entry() {
+        let json = r##"{"type":"agent-color","agentColor":"#ff5733","timestamp":"2025-01-01T00:00:00Z","uuid":"ac1"}"##;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::AgentColor(_)));
+
+        let msgs = parse_entries_to_messages(vec![entry]);
+        assert!(msgs.is_empty());
+    }
+
+    #[test]
+    fn test_parse_agent_name_entry() {
+        let json = r#"{"type":"agent-name","agentName":"Research Bot","timestamp":"2025-01-01T00:00:00Z","uuid":"an1"}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::AgentName(_)));
+
+        let msgs = parse_entries_to_messages(vec![entry]);
+        assert!(msgs.is_empty());
+    }
+
+    #[test]
+    fn test_parse_last_prompt_entry() {
+        let json = r#"{"type":"last-prompt","lastPrompt":"fix the bug","timestamp":"2025-01-01T00:00:00Z","uuid":"lp1"}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::LastPrompt(_)));
+
+        let msgs = parse_entries_to_messages(vec![entry]);
+        assert!(msgs.is_empty());
+    }
+
+    #[test]
+    fn test_parse_query_update_progress() {
+        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"query_update"}}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::Progress(_)));
+        let map = extract_progress_map(&[entry]);
+        assert!(map.is_empty()); // query_update is skipped
+    }
+
+    #[test]
+    fn test_parse_search_results_received_progress() {
+        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"search_results_received"}}"#;
+        let entry = parse_entry(json).unwrap();
+        assert!(matches!(entry, ChatHistoryEntry::Progress(_)));
+        let map = extract_progress_map(&[entry]);
+        assert!(map.is_empty()); // search_results_received is skipped
+    }
+
+    #[test]
+    fn test_user_entry_visible_in_transcript_only() {
+        let json = r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"context"},"isVisibleInTranscriptOnly":true,"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#;
+        let entry = parse_entry(json).unwrap();
+        if let ChatHistoryEntry::User(u) = &entry {
+            assert!(u.is_visible_in_transcript_only);
+        } else {
+            panic!("Expected User entry");
+        }
+    }
+
+    #[test]
+    fn test_system_entry_api_error_and_logical_parent() {
+        let json = r#"{"type":"system","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","subtype":"compact_boundary","isMeta":true,"isApiErrorMessage":true,"logicalParentUuid":"prev-uuid","timestamp":"2025-01-01T00:00:00Z","uuid":"s1"}"#;
+        let entry = parse_entry(json).unwrap();
+        if let ChatHistoryEntry::System(s) = &entry {
+            assert!(s.is_api_error_message);
+            assert_eq!(s.logical_parent_uuid.as_deref(), Some("prev-uuid"));
+        } else {
+            panic!("Expected System entry");
+        }
     }
 }

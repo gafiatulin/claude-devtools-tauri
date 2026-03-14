@@ -192,7 +192,7 @@ export const SessionItem = ({
   }, []);
 
   const shortId = session.id.slice(0, 8);
-  const sessionLabel = shortId;
+  const sessionLabel = session.sessionName ?? shortId;
 
   const handleOpenInCurrentPane = useCallback(() => {
     if (!activeProjectId) return;
@@ -278,10 +278,10 @@ export const SessionItem = ({
             </span>
           )}
           <span
-            className="font-mono text-[13px] font-medium leading-tight"
+            className={`text-[13px] font-medium leading-tight ${session.sessionName ? '' : 'font-mono'}`}
             style={{ color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}
           >
-            {shortId}
+            {session.sessionName ?? shortId}
           </span>
         </div>
 

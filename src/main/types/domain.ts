@@ -113,6 +113,8 @@ export interface Session {
   slug?: string;
   /** True if this session was started from a plan (has planContent in first user entry) */
   hasPlanContent?: boolean;
+  /** Session name set via `/rename` (from custom-title JSONL entry) */
+  sessionName?: string;
 }
 
 /**

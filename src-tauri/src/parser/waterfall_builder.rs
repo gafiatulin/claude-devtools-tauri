@@ -313,6 +313,7 @@ mod tests {
                 phase_breakdown: None,
                 slug: None,
                 has_plan_content: None,
+                session_name: None,
             },
             messages: Vec::new(),
             chunks,
