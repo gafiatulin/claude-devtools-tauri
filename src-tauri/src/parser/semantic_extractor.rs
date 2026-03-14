@@ -520,3 +520,280 @@ fn compute_duration_ms(start: &str, end: &str) -> f64 {
         _ => 0.0,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::chunks::{AiChunkData, BaseChunkFields};
+    use crate::models::domain::{MessageType, SessionMetrics, TokenUsage};
+    use crate::models::jsonl::{ContentBlock, StringOrBlocks};
+    use crate::models::messages::{ParsedMessage, ToolResult};
+
+    fn default_metrics() -> SessionMetrics {
+        SessionMetrics {
+            duration_ms: 0.0,
+            total_tokens: 0,
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_tokens: 0,
+            cache_creation_tokens: 0,
+            message_count: 0,
+            cost_usd: None,
+        }
+    }
+
+    fn make_ai_msg_with_blocks(uuid: &str, ts: &str, blocks: Vec<ContentBlock>) -> ParsedMessage {
+        ParsedMessage {
+            uuid: uuid.to_string(),
+            parent_uuid: None,
+            message_type: MessageType::Assistant,
+            timestamp: ts.to_string(),
+            role: Some("assistant".to_string()),
+            content: StringOrBlocks::Blocks(blocks),
+            usage: Some(TokenUsage {
+                input_tokens: 100,
+                output_tokens: 50,
+                cache_read_input_tokens: None,
+                cache_creation_input_tokens: None,
+            }),
+            model: Some("claude-sonnet".to_string()),
+            cwd: None,
+            git_branch: None,
+            agent_id: None,
+            is_sidechain: false,
+            is_meta: false,
+            user_type: None,
+            tool_calls: Vec::new(),
+            tool_results: Vec::new(),
+            source_tool_use_id: None,
+            source_tool_assistant_uuid: None,
+            tool_use_result: None,
+            is_compact_summary: None,
+            plan_content: None,
+        }
+    }
+
+    fn make_tool_result_msg(uuid: &str, ts: &str, tool_use_id: &str, content: &str) -> ParsedMessage {
+        ParsedMessage {
+            uuid: uuid.to_string(),
+            parent_uuid: None,
+            message_type: MessageType::User,
+            timestamp: ts.to_string(),
+            role: Some("user".to_string()),
+            content: StringOrBlocks::String("".to_string()),
+            usage: None,
+            model: None,
+            cwd: None,
+            git_branch: None,
+            agent_id: None,
+            is_sidechain: false,
+            is_meta: true,
+            user_type: None,
+            tool_calls: Vec::new(),
+            tool_results: vec![ToolResult {
+                tool_use_id: tool_use_id.to_string(),
+                content: serde_json::Value::String(content.to_string()),
+                is_error: false,
+            }],
+            source_tool_use_id: None,
+            source_tool_assistant_uuid: None,
+            tool_use_result: None,
+            is_compact_summary: None,
+            plan_content: None,
+        }
+    }
+
+    fn make_chunk(responses: Vec<ParsedMessage>) -> AiChunkData {
+        AiChunkData {
+            base: BaseChunkFields {
+                id: "chunk-1".to_string(),
+                start_time: responses.first().map(|r| r.timestamp.clone()).unwrap_or_default(),
+                end_time: responses.last().map(|r| r.timestamp.clone()).unwrap_or_default(),
+                duration_ms: 0.0,
+                metrics: default_metrics(),
+            },
+            responses,
+            processes: Vec::new(),
+            sidechain_messages: Vec::new(),
+            tool_executions: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_extract_thinking_step() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Thinking {
+                thinking: "Let me think...".to_string(),
+                signature: String::new(),
+            },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].step_type, SemanticStepType::Thinking);
+        assert_eq!(steps[0].content.thinking_text.as_deref(), Some("Let me think..."));
+    }
+
+    #[test]
+    fn test_extract_tool_call_step() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::ToolUse {
+                id: "tu1".to_string(),
+                name: "Bash".to_string(),
+                input: serde_json::json!({"command": "ls"}),
+            },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].step_type, SemanticStepType::ToolCall);
+        assert_eq!(steps[0].content.tool_name.as_deref(), Some("Bash"));
+        assert_eq!(steps[0].id, "tu1");
+    }
+
+    #[test]
+    fn test_extract_text_output_step() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Text { text: "Here is the answer.".to_string() },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].step_type, SemanticStepType::Output);
+        assert_eq!(steps[0].content.output_text.as_deref(), Some("Here is the answer."));
+    }
+
+    #[test]
+    fn test_extract_empty_text_skipped() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Text { text: "   ".to_string() },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert!(steps.is_empty());
+    }
+
+    #[test]
+    fn test_extract_tool_result_step() {
+        let ai_msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::ToolUse {
+                id: "tu1".to_string(),
+                name: "Bash".to_string(),
+                input: serde_json::json!({}),
+            },
+        ]);
+        let result_msg = make_tool_result_msg("u1", "2025-01-01T00:00:01Z", "tu1", "file1.txt");
+
+        let chunk = make_chunk(vec![ai_msg, result_msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 2);
+        assert_eq!(steps[0].step_type, SemanticStepType::ToolCall);
+        assert_eq!(steps[1].step_type, SemanticStepType::ToolResult);
+        assert_eq!(steps[1].content.tool_result_content.as_deref(), Some("file1.txt"));
+    }
+
+    #[test]
+    fn test_extract_task_as_subagent() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::ToolUse {
+                id: "task1".to_string(),
+                name: "Task".to_string(),
+                input: serde_json::json!({"description": "Run tests"}),
+            },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].step_type, SemanticStepType::Subagent);
+        assert_eq!(steps[0].content.subagent_description.as_deref(), Some("Run tests"));
+    }
+
+    #[test]
+    fn test_extract_interruption_step() {
+        let mut msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![]);
+        msg.content = StringOrBlocks::String("[Request interrupted by user]".to_string());
+
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].step_type, SemanticStepType::Interruption);
+    }
+
+    #[test]
+    fn test_gap_filling() {
+        let msg1 = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Thinking { thinking: "hmm".to_string(), signature: String::new() },
+        ]);
+        let msg2 = make_ai_msg_with_blocks("a2", "2025-01-01T00:00:05Z", vec![
+            ContentBlock::Text { text: "answer".to_string() },
+        ]);
+        let chunk = make_chunk(vec![msg1, msg2]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+
+        assert_eq!(steps.len(), 2);
+        // First step should be gap-filled with second step's start time
+        assert_eq!(steps[0].is_gap_filled, Some(true));
+        assert_eq!(steps[0].effective_end_time.as_deref(), Some("2025-01-01T00:00:05Z"));
+        assert_eq!(steps[0].effective_duration_ms, Some(5000.0));
+    }
+
+    #[test]
+    fn test_group_semantic_steps_single_source() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Thinking { thinking: "hmm".to_string(), signature: String::new() },
+            ContentBlock::Text { text: "answer".to_string() },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+        let groups = group_semantic_steps(steps, &[]);
+
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].steps.len(), 2);
+        assert_eq!(groups[0].label, "Thinking & Output");
+    }
+
+    #[test]
+    fn test_group_semantic_steps_tool_label() {
+        let msg = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::ToolUse {
+                id: "tu1".to_string(),
+                name: "Read".to_string(),
+                input: serde_json::json!({}),
+            },
+        ]);
+        let chunk = make_chunk(vec![msg]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+        let groups = group_semantic_steps(steps, &[]);
+
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].label, "Called Read");
+    }
+
+    #[test]
+    fn test_group_semantic_steps_multiple_sources() {
+        let msg1 = make_ai_msg_with_blocks("a1", "2025-01-01T00:00:00Z", vec![
+            ContentBlock::Text { text: "first".to_string() },
+        ]);
+        let msg2 = make_ai_msg_with_blocks("a2", "2025-01-01T00:00:01Z", vec![
+            ContentBlock::Text { text: "second".to_string() },
+        ]);
+        let chunk = make_chunk(vec![msg1, msg2]);
+        let steps = extract_semantic_steps(&chunk, &[]);
+        let groups = group_semantic_steps(steps, &[]);
+
+        assert_eq!(groups.len(), 2);
+    }
+
+    #[test]
+    fn test_group_semantic_steps_empty() {
+        let groups = group_semantic_steps(vec![], &[]);
+        assert!(groups.is_empty());
+    }
+}

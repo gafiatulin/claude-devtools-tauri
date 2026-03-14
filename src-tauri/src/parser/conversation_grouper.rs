@@ -186,3 +186,139 @@ fn compute_duration_ms(start: &str, end: &str) -> f64 {
         _ => 0.0,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::domain::{MessageType, TokenUsage};
+    use crate::models::jsonl::StringOrBlocks;
+    use crate::models::messages::ParsedMessage;
+
+    fn make_user_msg(uuid: &str, ts: &str) -> ParsedMessage {
+        ParsedMessage {
+            uuid: uuid.to_string(),
+            parent_uuid: None,
+            message_type: MessageType::User,
+            timestamp: ts.to_string(),
+            role: Some("user".to_string()),
+            content: StringOrBlocks::String("Hello".to_string()),
+            usage: None,
+            model: None,
+            cwd: Some("/tmp".to_string()),
+            git_branch: None,
+            agent_id: None,
+            is_sidechain: false,
+            is_meta: false,
+            user_type: Some("external".to_string()),
+            tool_calls: Vec::new(),
+            tool_results: Vec::new(),
+            source_tool_use_id: None,
+            source_tool_assistant_uuid: None,
+            tool_use_result: None,
+            is_compact_summary: None,
+            plan_content: None,
+        }
+    }
+
+    fn make_ai_msg(uuid: &str, ts: &str) -> ParsedMessage {
+        ParsedMessage {
+            uuid: uuid.to_string(),
+            parent_uuid: None,
+            message_type: MessageType::Assistant,
+            timestamp: ts.to_string(),
+            role: Some("assistant".to_string()),
+            content: StringOrBlocks::Blocks(vec![]),
+            usage: Some(TokenUsage {
+                input_tokens: 100,
+                output_tokens: 50,
+                cache_read_input_tokens: None,
+                cache_creation_input_tokens: None,
+            }),
+            model: Some("claude-sonnet".to_string()),
+            cwd: Some("/tmp".to_string()),
+            git_branch: None,
+            agent_id: None,
+            is_sidechain: false,
+            is_meta: false,
+            user_type: Some("external".to_string()),
+            tool_calls: Vec::new(),
+            tool_results: Vec::new(),
+            source_tool_use_id: None,
+            source_tool_assistant_uuid: None,
+            tool_use_result: None,
+            is_compact_summary: None,
+            plan_content: None,
+        }
+    }
+
+    #[test]
+    fn test_build_conversation_groups_basic() {
+        let messages = vec![
+            make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            make_ai_msg("a1", "2025-01-01T00:00:01Z"),
+            make_ai_msg("a2", "2025-01-01T00:00:02Z"),
+        ];
+
+        let groups = build_conversation_groups(&messages, &[]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].user_message.uuid, "u1");
+        assert_eq!(groups[0].ai_responses.len(), 2);
+    }
+
+    #[test]
+    fn test_build_conversation_groups_multiple() {
+        let messages = vec![
+            make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            make_ai_msg("a1", "2025-01-01T00:00:01Z"),
+            make_user_msg("u2", "2025-01-01T00:00:02Z"),
+            make_ai_msg("a2", "2025-01-01T00:00:03Z"),
+        ];
+
+        let groups = build_conversation_groups(&messages, &[]);
+        assert_eq!(groups.len(), 2);
+        assert_eq!(groups[0].user_message.uuid, "u1");
+        assert_eq!(groups[1].user_message.uuid, "u2");
+    }
+
+    #[test]
+    fn test_build_conversation_groups_empty() {
+        let groups = build_conversation_groups(&[], &[]);
+        assert!(groups.is_empty());
+    }
+
+    #[test]
+    fn test_build_conversation_groups_user_only() {
+        let messages = vec![
+            make_user_msg("u1", "2025-01-01T00:00:00Z"),
+        ];
+
+        let groups = build_conversation_groups(&messages, &[]);
+        assert_eq!(groups.len(), 1);
+        assert!(groups[0].ai_responses.is_empty());
+    }
+
+    #[test]
+    fn test_build_conversation_groups_metrics() {
+        let messages = vec![
+            make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            make_ai_msg("a1", "2025-01-01T00:00:01Z"),
+            make_ai_msg("a2", "2025-01-01T00:00:02Z"),
+        ];
+
+        let groups = build_conversation_groups(&messages, &[]);
+        assert_eq!(groups[0].metrics.input_tokens, 200); // 100 * 2
+        assert_eq!(groups[0].metrics.output_tokens, 100); // 50 * 2
+        assert_eq!(groups[0].metrics.message_count, 2);
+    }
+
+    #[test]
+    fn test_build_conversation_groups_timing() {
+        let messages = vec![
+            make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            make_ai_msg("a1", "2025-01-01T00:00:05Z"),
+        ];
+
+        let groups = build_conversation_groups(&messages, &[]);
+        assert_eq!(groups[0].duration_ms, 5000.0);
+    }
+}
