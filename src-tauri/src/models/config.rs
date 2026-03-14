@@ -8,7 +8,7 @@ use super::notifications::NotificationTrigger;
 // Application Configuration
 // =============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     pub notifications: NotificationsConfig,
@@ -49,7 +49,7 @@ pub struct DisplayConfig {
     pub syntax_highlighting: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionsConfig {
     pub pinned_sessions: HashMap<String, Vec<PinnedSession>>,
@@ -73,17 +73,6 @@ pub struct HiddenSession {
 // =============================================================================
 // Defaults
 // =============================================================================
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            notifications: NotificationsConfig::default(),
-            general: GeneralConfig::default(),
-            display: DisplayConfig::default(),
-            sessions: SessionsConfig::default(),
-        }
-    }
-}
 
 impl Default for NotificationsConfig {
     fn default() -> Self {
@@ -116,15 +105,6 @@ impl Default for DisplayConfig {
             show_timestamps: true,
             compact_mode: false,
             syntax_highlighting: true,
-        }
-    }
-}
-
-impl Default for SessionsConfig {
-    fn default() -> Self {
-        Self {
-            pinned_sessions: HashMap::new(),
-            hidden_sessions: HashMap::new(),
         }
     }
 }

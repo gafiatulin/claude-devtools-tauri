@@ -32,7 +32,7 @@ pub fn get_sessions_paginated(
     let claude_root = state.claude_root();
     let project_dir = claude_root.join("projects").join(&project_id);
     let limit = limit.unwrap_or(20) as usize;
-    let options = options.unwrap_or_else(|| SessionsPaginationOptions {
+    let options = options.unwrap_or(SessionsPaginationOptions {
         include_total_count: Some(true),
         prefilter_all: Some(true),
         metadata_level: None,

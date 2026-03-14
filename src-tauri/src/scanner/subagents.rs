@@ -135,7 +135,7 @@ fn legacy_agent_belongs_to_session(path: &Path, session_id: &str) -> bool {
             return value
                 .get("sessionId")
                 .and_then(|s| s.as_str())
-                .map_or(false, |s| s == session_id);
+                .is_some_and(|s| s == session_id);
         }
         break;
     }

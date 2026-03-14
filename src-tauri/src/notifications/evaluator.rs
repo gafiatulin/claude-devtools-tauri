@@ -272,6 +272,7 @@ fn evaluate_content_match(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn match_tool_result(
     entry: &ChatHistoryEntry,
     trigger: &NotificationTrigger,
@@ -325,6 +326,7 @@ fn match_tool_result(
     None
 }
 
+#[allow(clippy::too_many_arguments)]
 fn match_tool_use(
     entry: &ChatHistoryEntry,
     trigger: &NotificationTrigger,
@@ -533,9 +535,9 @@ fn extract_tool_use_field(tool_name: &str, input: &serde_json::Value, match_fiel
     // Otherwise look up the field in the input object
     input
         .get(match_field)
-        .and_then(|v| match v {
-            serde_json::Value::String(s) => Some(s.clone()),
-            _ => Some(v.to_string()),
+        .map(|v| match v {
+            serde_json::Value::String(s) => s.clone(),
+            _ => v.to_string(),
         })
         .unwrap_or_default()
 }
@@ -583,6 +585,7 @@ fn truncate_message(msg: &str, max_len: usize) -> String {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_detected_error(
     trigger: &NotificationTrigger,
     context: &EvalContext,

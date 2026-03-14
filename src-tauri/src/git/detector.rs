@@ -139,7 +139,7 @@ pub fn get_repository_identity(repo_path: &Path) -> Option<RepositoryIdentity> {
 
     Some(RepositoryIdentity {
         id,
-        remote_url: remote_url,
+        remote_url,
         main_git_dir: git_common_dir.to_string_lossy().to_string(),
         name,
     })

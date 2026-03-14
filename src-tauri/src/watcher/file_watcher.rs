@@ -195,19 +195,11 @@ pub fn start_watcher(
     let todos_dir_for_route = todos_dir_clone;
 
     let router_handle = std::thread::spawn(move || {
-        loop {
-            match rx.recv() {
-                Ok((path, kind)) => {
-                    if path.starts_with(&projects_dir_for_route) {
-                        projects_debouncer.add_event(path, kind);
-                    } else if path.starts_with(&todos_dir_for_route) {
-                        todos_debouncer.add_event(path, kind);
-                    }
-                }
-                Err(_) => {
-                    // Channel closed, watcher was dropped
-                    break;
-                }
+        while let Ok((path, kind)) = rx.recv() {
+            if path.starts_with(&projects_dir_for_route) {
+                projects_debouncer.add_event(path, kind);
+            } else if path.starts_with(&todos_dir_for_route) {
+                todos_debouncer.add_event(path, kind);
             }
         }
     });

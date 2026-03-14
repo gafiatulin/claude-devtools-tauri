@@ -62,7 +62,7 @@ pub fn search_sessions(
             (path, mtime)
         })
         .collect();
-    files_with_mtime.sort_by(|a, b| b.1.cmp(&a.1));
+    files_with_mtime.sort_by_key(|(_path, mtime)| std::cmp::Reverse(*mtime));
 
     let mut results = Vec::new();
     let mut sessions_searched: u32 = 0;
@@ -294,6 +294,7 @@ fn search_session_file(
 
 /// Find all occurrences of `query_lower` in `text` (case-insensitive) and
 /// append `SearchResult` entries to `results`, up to `max` total results.
+#[allow(clippy::too_many_arguments)]
 fn find_matches_in_text(
     text: &str,
     query_lower: &str,

@@ -342,48 +342,46 @@ fn extract_steps_from_assistant(
                     token_breakdown: None,
                 });
             }
-            ContentBlock::Text { text } => {
-                if !text.trim().is_empty() {
-                    steps.push(SemanticStep {
-                        id: step_id,
-                        step_type: SemanticStepType::Output,
-                        start_time: msg.timestamp.clone(),
-                        end_time: None,
-                        duration_ms: 0.0,
-                        content: SemanticStepContent {
-                            thinking_text: None,
-                            tool_name: None,
-                            tool_input: None,
-                            tool_result_content: None,
-                            is_error: None,
-                            tool_use_result: None,
-                            token_count: Some(text.len() as u64 / 4), // rough token estimate
-                            subagent_id: None,
-                            subagent_description: None,
-                            output_text: Some(text.clone()),
-                            source_model: msg.model.clone(),
-                            interruption_text: None,
-                        },
-                        tokens: Some(StepTokens {
-                            input: total_input / content_block_count,
-                            output: total_output / content_block_count,
-                            cached: Some(cache_read / content_block_count),
-                        }),
-                        is_parallel: None,
-                        group_id: None,
-                        context: "main".to_string(),
-                        agent_id: msg.agent_id.clone(),
-                        source_message_id: Some(msg.uuid.clone()),
-                        effective_end_time: None,
-                        effective_duration_ms: None,
-                        is_gap_filled: None,
-                        context_tokens: None,
-                        accumulated_context: Some(*accumulated_context),
-                        token_breakdown: None,
-                    });
-                }
+            ContentBlock::Text { text } if !text.trim().is_empty() => {
+                steps.push(SemanticStep {
+                    id: step_id,
+                    step_type: SemanticStepType::Output,
+                    start_time: msg.timestamp.clone(),
+                    end_time: None,
+                    duration_ms: 0.0,
+                    content: SemanticStepContent {
+                        thinking_text: None,
+                        tool_name: None,
+                        tool_input: None,
+                        tool_result_content: None,
+                        is_error: None,
+                        tool_use_result: None,
+                        token_count: Some(text.len() as u64 / 4), // rough token estimate
+                        subagent_id: None,
+                        subagent_description: None,
+                        output_text: Some(text.clone()),
+                        source_model: msg.model.clone(),
+                        interruption_text: None,
+                    },
+                    tokens: Some(StepTokens {
+                        input: total_input / content_block_count,
+                        output: total_output / content_block_count,
+                        cached: Some(cache_read / content_block_count),
+                    }),
+                    is_parallel: None,
+                    group_id: None,
+                    context: "main".to_string(),
+                    agent_id: msg.agent_id.clone(),
+                    source_message_id: Some(msg.uuid.clone()),
+                    effective_end_time: None,
+                    effective_duration_ms: None,
+                    is_gap_filled: None,
+                    context_tokens: None,
+                    accumulated_context: Some(*accumulated_context),
+                    token_breakdown: None,
+                });
             }
-            _ => {} // Image, ToolResult blocks in assistant message are uncommon
+            _ => {} // Empty text, Image, ToolResult blocks in assistant message
         }
     }
 

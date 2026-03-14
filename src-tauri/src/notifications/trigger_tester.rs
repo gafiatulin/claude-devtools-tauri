@@ -158,7 +158,7 @@ fn collect_jsonl_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
         .collect();
 
     // Sort newest first so we scan the most recent sessions first
-    files.sort_by(|a, b| b.1.cmp(&a.1));
+    files.sort_by_key(|(_path, mtime)| std::cmp::Reverse(*mtime));
 
     Ok(files.into_iter().map(|(p, _)| p).collect())
 }

@@ -162,9 +162,9 @@ impl ParsedMessage {
                     || s.starts_with(super::constants::LOCAL_COMMAND_STDERR_TAG)
             }
             StringOrBlocks::Blocks(blocks) => blocks.iter().any(|block| {
-                block.as_text().map_or(false, |t| {
-                    t.starts_with(super::constants::LOCAL_COMMAND_STDOUT_TAG)
-                })
+                block
+                    .as_text()
+                    .is_some_and(|t| t.starts_with(super::constants::LOCAL_COMMAND_STDOUT_TAG))
             }),
         }
     }
@@ -242,7 +242,7 @@ impl ParsedMessage {
             StringOrBlocks::Blocks(blocks) => blocks.iter().any(|block| {
                 block
                     .as_text()
-                    .map_or(false, |t| t.trim().starts_with(TEAMMATE_MESSAGE_PREFIX))
+                    .is_some_and(|t| t.trim().starts_with(TEAMMATE_MESSAGE_PREFIX))
             }),
         }
     }

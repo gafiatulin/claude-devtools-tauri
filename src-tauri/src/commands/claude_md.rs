@@ -5,7 +5,7 @@ use crate::models::api::ClaudeMdFileInfo;
 
 /// Approximate token count from character count (~4 chars per token).
 fn estimate_tokens(char_count: u32) -> u32 {
-    (char_count + 3) / 4
+    char_count.div_ceil(4)
 }
 
 /// Build a `ClaudeMdFileInfo` for a given path. If the file exists, reads it
