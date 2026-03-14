@@ -63,6 +63,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "Claude DevTools ${{ github.ref_name }}"
-          draft: true
           files: "**/*.dmg"
           generate_release_notes: true
