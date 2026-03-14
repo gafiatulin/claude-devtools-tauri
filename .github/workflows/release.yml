@@ -46,8 +46,17 @@ jobs:
           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
           security default-keychain -s $KEYCHAIN_PATH
 
+          cat > codesign.cnf <<CNFEOF
+          [req]
+          distinguished_name = req_dn
+          [req_dn]
+          [v3_cs]
+          keyUsage = critical, digitalSignature
+          extendedKeyUsage = codeSigning
+          CNFEOF
           openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
-            -days 365 -nodes -subj "/CN=Claude DevTools Self-Signed"
+            -days 365 -nodes -subj "/CN=Claude DevTools Self-Signed" \
+            -extensions v3_cs -config codesign.cnf
           openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem \
             -password pass:build -legacy
 
@@ -58,7 +67,7 @@ jobs:
 
           security find-identity -v -p codesigning $KEYCHAIN_PATH
 
-          rm -f key.pem cert.pem cert.p12
+          rm -f key.pem cert.pem cert.p12 codesign.cnf
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
