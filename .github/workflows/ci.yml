@@ -15,7 +15,7 @@ jobs:
     name: Rust checks
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -38,7 +38,7 @@ jobs:
     name: Frontend checks
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
 
@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-26
     needs: [rust, frontend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
 
