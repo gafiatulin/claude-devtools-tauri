@@ -9,10 +9,7 @@ pub struct ShellResult {
 
 /// Open a file or directory using macOS `open` command.
 #[tauri::command]
-pub fn open_path(
-    target_path: String,
-    project_root: Option<String>,
-) -> Result<ShellResult, String> {
+pub fn open_path(target_path: String, project_root: Option<String>) -> Result<ShellResult, String> {
     let path = if std::path::Path::new(&target_path).is_absolute() {
         target_path.clone()
     } else if let Some(root) = &project_root {
@@ -65,10 +62,7 @@ pub fn get_app_version() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn scroll_to_line(
-    session_id: String,
-    line_number: u32,
-) -> Result<(), String> {
+pub fn scroll_to_line(session_id: String, line_number: u32) -> Result<(), String> {
     let _ = (session_id, line_number);
     // No-op on the backend. The frontend handles scroll-to-line
     // directly through its own state management.
@@ -86,7 +80,9 @@ pub struct BackgroundTaskResult {
 /// Read output from a background task's output file.
 /// Searches /private/tmp/claude-*/*/tasks/{task_id}.output
 #[tauri::command]
-pub fn read_background_task_output(task_id: String) -> Result<Option<BackgroundTaskResult>, String> {
+pub fn read_background_task_output(
+    task_id: String,
+) -> Result<Option<BackgroundTaskResult>, String> {
     // Validate task_id to prevent path traversal
     if task_id.contains('/') || task_id.contains("..") {
         return Err("Invalid task_id".to_string());
@@ -130,7 +126,12 @@ pub fn read_background_task_output(task_id: String) -> Result<Option<BackgroundT
                 let is_running = lsof_open || recently_modified;
 
                 match std::fs::read_to_string(&output_file) {
-                    Ok(content) => return Ok(Some(BackgroundTaskResult { content, is_running })),
+                    Ok(content) => {
+                        return Ok(Some(BackgroundTaskResult {
+                            content,
+                            is_running,
+                        }))
+                    }
                     Err(e) => return Err(e.to_string()),
                 }
             }

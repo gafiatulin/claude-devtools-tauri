@@ -97,8 +97,13 @@ pub fn test_trigger(
                     break 'outer;
                 }
 
-                let detected =
-                    evaluate_triggers_cached(entry, &triggers, &ctx, Some((line_idx + 1) as u32), &cache);
+                let detected = evaluate_triggers_cached(
+                    entry,
+                    &triggers,
+                    &ctx,
+                    Some((line_idx + 1) as u32),
+                    &cache,
+                );
 
                 for d in detected {
                     total_count += 1;
@@ -144,11 +149,7 @@ fn collect_jsonl_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 
     let mut files: Vec<(PathBuf, std::time::SystemTime)> = entries
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.path()
-                .extension()
-                .is_some_and(|ext| ext == "jsonl")
-        })
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "jsonl"))
         .filter_map(|e| {
             let path = e.path();
             let modified = e.metadata().ok()?.modified().ok()?;

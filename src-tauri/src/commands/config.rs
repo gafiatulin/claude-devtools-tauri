@@ -19,18 +19,12 @@ pub fn update_config(
 }
 
 #[tauri::command]
-pub fn add_ignore_regex(
-    pattern: String,
-    state: State<AppState>,
-) -> Result<AppConfig, String> {
+pub fn add_ignore_regex(pattern: String, state: State<AppState>) -> Result<AppConfig, String> {
     state.config.add_ignore_regex(pattern)
 }
 
 #[tauri::command]
-pub fn remove_ignore_regex(
-    pattern: String,
-    state: State<AppState>,
-) -> Result<AppConfig, String> {
+pub fn remove_ignore_regex(pattern: String, state: State<AppState>) -> Result<AppConfig, String> {
     state.config.remove_ignore_regex(&pattern)
 }
 
@@ -51,10 +45,7 @@ pub fn remove_ignore_repository(
 }
 
 #[tauri::command]
-pub fn snooze_notifications(
-    minutes: u32,
-    state: State<AppState>,
-) -> Result<AppConfig, String> {
+pub fn snooze_notifications(minutes: u32, state: State<AppState>) -> Result<AppConfig, String> {
     state.config.snooze(minutes)
 }
 
@@ -81,10 +72,7 @@ pub fn update_trigger(
 }
 
 #[tauri::command]
-pub fn remove_trigger(
-    trigger_id: String,
-    state: State<AppState>,
-) -> Result<AppConfig, String> {
+pub fn remove_trigger(trigger_id: String, state: State<AppState>) -> Result<AppConfig, String> {
     state.config.remove_trigger(&trigger_id)
 }
 

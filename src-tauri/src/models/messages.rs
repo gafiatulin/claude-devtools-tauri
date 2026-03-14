@@ -91,9 +91,9 @@ impl ParsedMessage {
         }
         match &self.content {
             StringOrBlocks::String(_) => true,
-            StringOrBlocks::Blocks(blocks) => {
-                blocks.iter().any(|b| b.is_text() || matches!(b, ContentBlock::Image { .. }))
-            }
+            StringOrBlocks::Blocks(blocks) => blocks
+                .iter()
+                .any(|b| b.is_text() || matches!(b, ContentBlock::Image { .. })),
         }
     }
 
@@ -162,9 +162,9 @@ impl ParsedMessage {
                     || s.starts_with(super::constants::LOCAL_COMMAND_STDERR_TAG)
             }
             StringOrBlocks::Blocks(blocks) => blocks.iter().any(|block| {
-                block
-                    .as_text()
-                    .map_or(false, |t| t.starts_with(super::constants::LOCAL_COMMAND_STDOUT_TAG))
+                block.as_text().map_or(false, |t| {
+                    t.starts_with(super::constants::LOCAL_COMMAND_STDOUT_TAG)
+                })
             }),
         }
     }

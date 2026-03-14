@@ -39,11 +39,10 @@ pub fn decode_project_id(encoded: &str) -> String {
     }
 
     let parts: Vec<&str> = rest.split('-').collect();
-    let result = decode_path_greedy(&parts, 0, std::path::Path::new("/"))
-        .unwrap_or_else(|| {
-            // Fallback: simple replacement
-            encoded.replace('-', "/")
-        });
+    let result = decode_path_greedy(&parts, 0, std::path::Path::new("/")).unwrap_or_else(|| {
+        // Fallback: simple replacement
+        encoded.replace('-', "/")
+    });
 
     // Cache the result, but only if the resolved path exists on disk
     let resolved_path = Path::new(&result);
@@ -106,14 +105,9 @@ fn get_creation_time_ms(path: &Path) -> Option<f64> {
     let metadata = fs::metadata(path).ok()?;
 
     // Try birthtime first (macOS supports this via created())
-    let time = metadata
-        .created()
-        .or_else(|_| metadata.modified())
-        .ok()?;
+    let time = metadata.created().or_else(|_| metadata.modified()).ok()?;
 
-    let duration = time
-        .duration_since(std::time::UNIX_EPOCH)
-        .ok()?;
+    let duration = time.duration_since(std::time::UNIX_EPOCH).ok()?;
     Some(duration.as_secs_f64() * 1000.0)
 }
 
@@ -121,9 +115,7 @@ fn get_creation_time_ms(path: &Path) -> Option<f64> {
 fn get_modified_time_ms(path: &Path) -> Option<f64> {
     let metadata = fs::metadata(path).ok()?;
     let time = metadata.modified().ok()?;
-    let duration = time
-        .duration_since(std::time::UNIX_EPOCH)
-        .ok()?;
+    let duration = time.duration_since(std::time::UNIX_EPOCH).ok()?;
     Some(duration.as_secs_f64() * 1000.0)
 }
 
@@ -263,9 +255,13 @@ mod tests {
 
         // If the path exists on the filesystem, greedy decoding should resolve it.
         // Otherwise, it falls back to naive replacement.
-        let candidate = std::path::Path::new("/Users/victor/Workspace/personal/claude-devtools-tauri");
+        let candidate =
+            std::path::Path::new("/Users/victor/Workspace/personal/claude-devtools-tauri");
         if candidate.exists() {
-            assert_eq!(decoded, "/Users/victor/Workspace/personal/claude-devtools-tauri");
+            assert_eq!(
+                decoded,
+                "/Users/victor/Workspace/personal/claude-devtools-tauri"
+            );
         }
     }
 

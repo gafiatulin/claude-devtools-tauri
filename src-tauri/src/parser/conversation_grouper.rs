@@ -288,9 +288,7 @@ mod tests {
 
     #[test]
     fn test_build_conversation_groups_user_only() {
-        let messages = vec![
-            make_user_msg("u1", "2025-01-01T00:00:00Z"),
-        ];
+        let messages = vec![make_user_msg("u1", "2025-01-01T00:00:00Z")];
 
         let groups = build_conversation_groups(&messages, &[]);
         assert_eq!(groups.len(), 1);

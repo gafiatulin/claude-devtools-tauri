@@ -25,8 +25,8 @@ impl NotificationStore {
     /// Load from an existing JSON file. If the file does not exist, returns an empty store.
     pub fn load(path: &Path) -> Result<Self, String> {
         let notifications = if path.exists() {
-            let data =
-                fs::read_to_string(path).map_err(|e| format!("Failed to read notifications: {e}"))?;
+            let data = fs::read_to_string(path)
+                .map_err(|e| format!("Failed to read notifications: {e}"))?;
             let loaded: Vec<DetectedError> = serde_json::from_str(&data)
                 .map_err(|e| format!("Failed to parse notifications JSON: {e}"))?;
             loaded

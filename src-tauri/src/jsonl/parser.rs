@@ -448,14 +448,11 @@ mod tests {
         let summary_user_json = r#"{"type":"user","parentUuid":"boundary-uuid-1","isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"This session is being continued from a previous conversation that ran out of context."},"timestamp":"2025-01-01T00:00:04Z","uuid":"summary-user-1"}"#;
         let normal_user_json = r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"normal message"},"timestamp":"2025-01-01T00:00:05Z","uuid":"normal-u1"}"#;
 
-        let entries: Vec<ChatHistoryEntry> = vec![
-            compact_boundary_json,
-            summary_user_json,
-            normal_user_json,
-        ]
-        .into_iter()
-        .map(|j| parse_entry(j).unwrap())
-        .collect();
+        let entries: Vec<ChatHistoryEntry> =
+            vec![compact_boundary_json, summary_user_json, normal_user_json]
+                .into_iter()
+                .map(|j| parse_entry(j).unwrap())
+                .collect();
 
         let msgs = parse_entries_to_messages(entries);
         // compact_boundary system entry + summary user + normal user = 3 messages
@@ -524,10 +521,7 @@ mod tests {
 
     #[test]
     fn test_parse_entries_filters_unknown() {
-        let entries = vec![
-            ChatHistoryEntry::Unknown,
-            ChatHistoryEntry::Unknown,
-        ];
+        let entries = vec![ChatHistoryEntry::Unknown, ChatHistoryEntry::Unknown];
         let msgs = parse_entries_to_messages(entries);
         assert!(msgs.is_empty());
     }
@@ -599,7 +593,11 @@ mod tests {
         assert_eq!(map.len(), 1);
         assert!(map.contains_key("tc1"));
         match &map["tc1"] {
-            crate::models::chunks::ToolProgress::Bash { full_output, elapsed_time_seconds, .. } => {
+            crate::models::chunks::ToolProgress::Bash {
+                full_output,
+                elapsed_time_seconds,
+                ..
+            } => {
                 assert_eq!(full_output, "hello world");
                 assert!((elapsed_time_seconds - 2.5).abs() < f64::EPSILON);
             }
@@ -635,7 +633,12 @@ mod tests {
         assert_eq!(map.len(), 1);
         assert!(map.contains_key("toolu_01BQ"));
         match &map["toolu_01BQ"] {
-            crate::models::chunks::ToolProgress::Bash { full_output, elapsed_time_seconds, total_lines, timeout_ms } => {
+            crate::models::chunks::ToolProgress::Bash {
+                full_output,
+                elapsed_time_seconds,
+                total_lines,
+                timeout_ms,
+            } => {
                 assert_eq!(full_output, "full line1\nfull line2");
                 assert!((*elapsed_time_seconds - 15.0).abs() < f64::EPSILON);
                 assert_eq!(*total_lines, 24);
@@ -653,7 +656,11 @@ mod tests {
         let map = extract_progress_map(&[entry]);
         assert_eq!(map.len(), 1);
         match &map["toolu_01Hvq"] {
-            crate::models::chunks::ToolProgress::Hook { hook_event, hook_name, command } => {
+            crate::models::chunks::ToolProgress::Hook {
+                hook_event,
+                hook_name,
+                command,
+            } => {
                 assert_eq!(hook_event, "PostToolUse");
                 assert_eq!(hook_name, "PostToolUse:Read");
                 assert_eq!(command, "callback");
@@ -664,7 +671,8 @@ mod tests {
 
     #[test]
     fn test_extract_progress_map_skips_agent_progress() {
-        let json = r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"agent_progress"}}"#;
+        let json =
+            r#"{"type":"progress","parentToolUseID":"tc1","data":{"type":"agent_progress"}}"#;
         let entry = parse_entry(json).unwrap();
         let map = extract_progress_map(&[entry]);
         assert!(map.is_empty());

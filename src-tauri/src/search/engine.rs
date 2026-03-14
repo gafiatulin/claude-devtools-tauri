@@ -101,8 +101,8 @@ pub fn search_sessions(
 /// agent_*.jsonl subagent files. Also recurses one level into session UUID
 /// subdirectories to find session JSONL files there, but skips agent files.
 fn collect_session_files(project_dir: &Path) -> Result<Vec<std::path::PathBuf>, String> {
-    let entries = fs::read_dir(project_dir)
-        .map_err(|e| format!("Failed to read project dir: {e}"))?;
+    let entries =
+        fs::read_dir(project_dir).map_err(|e| format!("Failed to read project dir: {e}"))?;
 
     let mut files = Vec::new();
 
@@ -557,7 +557,11 @@ mod tests {
         if let Ok(mut entries) = std::fs::read_dir(&projects_dir) {
             if let Some(Ok(entry)) = entries.next() {
                 let project_dir = entry.path();
-                let project_id = project_dir.file_name().unwrap().to_string_lossy().to_string();
+                let project_id = project_dir
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string();
 
                 println!("Searching in project: {}", project_id);
 

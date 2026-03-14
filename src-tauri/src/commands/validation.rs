@@ -62,8 +62,7 @@ mod tests {
 
     #[test]
     fn test_validate_path_nonexistent() {
-        let result =
-            validate_path("nonexistent_xyz_123".to_string(), "/tmp".to_string()).unwrap();
+        let result = validate_path("nonexistent_xyz_123".to_string(), "/tmp".to_string()).unwrap();
         assert!(!result.exists);
         assert!(result.is_directory.is_none());
     }

@@ -132,8 +132,7 @@ mod tests {
 
     #[test]
     fn test_read_directory_claude_md_nonexistent() {
-        let result =
-            read_directory_claude_md("/nonexistent/path/xyz".to_string()).unwrap();
+        let result = read_directory_claude_md("/nonexistent/path/xyz".to_string()).unwrap();
         assert!(!result.exists);
         assert_eq!(result.char_count, 0);
         assert_eq!(result.estimated_tokens, 0);
@@ -141,12 +140,9 @@ mod tests {
 
     #[test]
     fn test_read_mentioned_file_nonexistent() {
-        let result = read_mentioned_file(
-            "/nonexistent/file.txt".to_string(),
-            "/".to_string(),
-            None,
-        )
-        .unwrap();
+        let result =
+            read_mentioned_file("/nonexistent/file.txt".to_string(), "/".to_string(), None)
+                .unwrap();
         assert!(result.is_none());
     }
 
@@ -168,8 +164,7 @@ mod tests {
 
     #[test]
     fn test_read_claude_md_files_nonexistent_root() {
-        let result =
-            read_claude_md_files("/nonexistent/path/xyz".to_string()).unwrap();
+        let result = read_claude_md_files("/nonexistent/path/xyz".to_string()).unwrap();
         // No CLAUDE.md files should be found under a nonexistent path
         assert!(result.is_empty());
     }

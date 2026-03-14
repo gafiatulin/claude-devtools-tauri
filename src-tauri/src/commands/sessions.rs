@@ -10,10 +10,7 @@ use crate::AppState;
 
 #[tracing::instrument(skip(state))]
 #[tauri::command]
-pub fn get_sessions(
-    project_id: String,
-    state: State<AppState>,
-) -> Result<Vec<Session>, String> {
+pub fn get_sessions(project_id: String, state: State<AppState>) -> Result<Vec<Session>, String> {
     let claude_root = state.claude_root();
     let project_dir = claude_root.join("projects").join(&project_id);
     crate::scanner::sessions::scan_sessions_with_cache(
@@ -115,11 +112,14 @@ pub fn get_session_groups(
 ) -> Result<Vec<ConversationGroup>, String> {
     let claude_root = state.claude_root();
     let project_dir = claude_root.join("projects").join(&project_id);
-    let detail = crate::scanner::sessions::scan_session_detail(&project_dir, &project_id, &session_id)?;
-    Ok(crate::parser::conversation_grouper::build_conversation_groups(
-        &detail.messages,
-        &detail.processes,
-    ))
+    let detail =
+        crate::scanner::sessions::scan_session_detail(&project_dir, &project_id, &session_id)?;
+    Ok(
+        crate::parser::conversation_grouper::build_conversation_groups(
+            &detail.messages,
+            &detail.processes,
+        ),
+    )
 }
 
 #[tracing::instrument(skip(state))]
@@ -132,7 +132,9 @@ pub fn get_waterfall_data(
     let claude_root = state.claude_root();
     let project_dir = claude_root.join("projects").join(&project_id);
     match crate::scanner::sessions::scan_session_detail(&project_dir, &project_id, &session_id) {
-        Ok(detail) => Ok(Some(crate::parser::waterfall_builder::build_waterfall(&detail))),
+        Ok(detail) => Ok(Some(crate::parser::waterfall_builder::build_waterfall(
+            &detail,
+        ))),
         Err(_) => Ok(None),
     }
 }
@@ -158,7 +160,11 @@ pub fn get_subagent_detail(
     };
 
     // Build chunks from the subagent's messages
-    let chunks = crate::parser::chunk_builder::build_chunks(&process.messages, &[], &std::collections::HashMap::new());
+    let chunks = crate::parser::chunk_builder::build_chunks(
+        &process.messages,
+        &[],
+        &std::collections::HashMap::new(),
+    );
     let enhanced_chunks = crate::parser::chunk_builder::enhance_chunks(chunks, &process.messages);
 
     Ok(Some(SubagentDetail {

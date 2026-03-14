@@ -38,8 +38,8 @@ pub fn find_git_root(path: &Path) -> Option<PathBuf> {
 /// Get the current branch name for a repository.
 /// Returns `None` for detached HEAD or non-git directories.
 pub fn get_current_branch(repo_path: &Path) -> Option<String> {
-    git_output(repo_path, &["rev-parse", "--abbrev-ref", "HEAD"])
-        .filter(|b| b != "HEAD") // detached HEAD
+    git_output(repo_path, &["rev-parse", "--abbrev-ref", "HEAD"]).filter(|b| b != "HEAD")
+    // detached HEAD
 }
 
 /// Get the path to the main `.git` directory (resolves worktree `.git` files).
@@ -274,15 +274,13 @@ pub fn build_repository_groups(projects: &[Project]) -> Vec<RepositoryGroup> {
 
         // Sort worktrees: main worktree first, then by most recent session descending
         worktrees.sort_by(|a, b| {
-            b.is_main_worktree
-                .cmp(&a.is_main_worktree)
-                .then_with(|| {
-                    let a_recent = a.most_recent_session.unwrap_or(0.0);
-                    let b_recent = b.most_recent_session.unwrap_or(0.0);
-                    b_recent
-                        .partial_cmp(&a_recent)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
+            b.is_main_worktree.cmp(&a.is_main_worktree).then_with(|| {
+                let a_recent = a.most_recent_session.unwrap_or(0.0);
+                let b_recent = b.most_recent_session.unwrap_or(0.0);
+                b_recent
+                    .partial_cmp(&a_recent)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
         });
 
         let most_recent_session = worktrees
@@ -290,10 +288,7 @@ pub fn build_repository_groups(projects: &[Project]) -> Vec<RepositoryGroup> {
             .filter_map(|w| w.most_recent_session)
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-        let total_sessions: u32 = worktrees
-            .iter()
-            .map(|w| w.sessions.len() as u32)
-            .sum();
+        let total_sessions: u32 = worktrees.iter().map(|w| w.sessions.len() as u32).sum();
 
         result.push(RepositoryGroup {
             id: group_id.clone(),

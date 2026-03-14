@@ -7,7 +7,7 @@ use tauri::Emitter;
 
 use crate::models::chunks::FileChangeEvent;
 
-use super::debouncer::{Debouncer, DebouncedFileEvent};
+use super::debouncer::{DebouncedFileEvent, Debouncer};
 
 /// Map a `notify::EventKind` to the change type string expected by the frontend.
 ///
@@ -29,10 +29,7 @@ fn event_kind_to_change_type(kind: EventKind) -> Option<&'static str> {
 /// - `{claude_root}/projects/{projectId}/{sessionId}.jsonl`
 /// - `{claude_root}/projects/{projectId}/{sessionId}/agent_{agentId}.jsonl`
 /// - `{claude_root}/projects/{projectId}/agent_{agentId}.jsonl` (legacy)
-fn parse_project_event(
-    path: &Path,
-    projects_dir: &Path,
-) -> Option<(String, String, bool)> {
+fn parse_project_event(path: &Path, projects_dir: &Path) -> Option<(String, String, bool)> {
     let relative = path.strip_prefix(projects_dir).ok()?;
     let components: Vec<&str> = relative
         .components()
@@ -117,13 +114,14 @@ pub fn start_watcher(
     let (tx, rx) = mpsc::channel::<(PathBuf, EventKind)>();
 
     // Create the notify watcher with a sync channel sender
-    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
-        if let Ok(event) = res {
-            for path in event.paths {
-                let _ = tx.send((path, event.kind));
+    let mut watcher =
+        notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+            if let Ok(event) = res {
+                for path in event.paths {
+                    let _ = tx.send((path, event.kind));
+                }
             }
-        }
-    })?;
+        })?;
 
     // Start watching both directories recursively
     watcher.watch(&projects_dir, RecursiveMode::Recursive)?;
@@ -175,9 +173,7 @@ pub fn start_watcher(
                     None => continue,
                 };
 
-                if let Some(session_id) =
-                    parse_todo_event(&event.path, &todos_dir_for_debounce)
-                {
+                if let Some(session_id) = parse_todo_event(&event.path, &todos_dir_for_debounce) {
                     let payload = FileChangeEvent {
                         event_type: change_type.to_string(),
                         path: event.path.to_string_lossy().to_string(),
@@ -275,8 +271,7 @@ mod tests {
     #[test]
     fn test_parse_project_event_subagent_in_subdirectory() {
         let projects_dir = PathBuf::from("/Users/me/.claude/projects");
-        let path =
-            projects_dir.join("-Users-me-myproject/abc-def-123/agent_xyz-789.jsonl");
+        let path = projects_dir.join("-Users-me-myproject/abc-def-123/agent_xyz-789.jsonl");
 
         let result = parse_project_event(&path, &projects_dir);
         assert_eq!(

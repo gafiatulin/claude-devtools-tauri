@@ -43,10 +43,8 @@ impl RegexCache {
             }
 
             if let Some(patterns) = &trigger.ignore_patterns {
-                let compiled: Vec<Regex> = patterns
-                    .iter()
-                    .filter_map(|p| Regex::new(p).ok())
-                    .collect();
+                let compiled: Vec<Regex> =
+                    patterns.iter().filter_map(|p| Regex::new(p).ok()).collect();
                 if !compiled.is_empty() {
                     ignore_patterns.insert(trigger.id.clone(), compiled);
                 }
@@ -164,9 +162,7 @@ fn evaluate_single_cached(
         "content_match" => {
             evaluate_content_match(entry, trigger, context, line_number, now_ms, cache)
         }
-        "token_threshold" => {
-            evaluate_token_threshold(entry, trigger, context, line_number, now_ms)
-        }
+        "token_threshold" => evaluate_token_threshold(entry, trigger, context, line_number, now_ms),
         _ => None,
     }
 }
@@ -250,15 +246,27 @@ fn evaluate_content_match(
     let match_field = trigger.match_field.as_deref().unwrap_or("content");
 
     match trigger.content_type.as_str() {
-        "tool_result" => {
-            match_tool_result(entry, trigger, regex, match_field, context, line_number, now_ms, cache)
-        }
-        "tool_use" => {
-            match_tool_use(entry, trigger, regex, match_field, context, line_number, now_ms, cache)
-        }
-        "thinking" => {
-            match_thinking(entry, trigger, regex, context, line_number, now_ms, cache)
-        }
+        "tool_result" => match_tool_result(
+            entry,
+            trigger,
+            regex,
+            match_field,
+            context,
+            line_number,
+            now_ms,
+            cache,
+        ),
+        "tool_use" => match_tool_use(
+            entry,
+            trigger,
+            regex,
+            match_field,
+            context,
+            line_number,
+            now_ms,
+            cache,
+        ),
+        "thinking" => match_thinking(entry, trigger, regex, context, line_number, now_ms, cache),
         "text" => match_text(entry, trigger, regex, context, line_number, now_ms, cache),
         _ => None,
     }
@@ -807,7 +815,10 @@ mod tests {
         let triggers = crate::config::defaults::default_triggers();
         println!("Testing {} default triggers", triggers.len());
         for t in &triggers {
-            println!("  - {} (mode: {}, content_type: {})", t.name, t.mode, t.content_type);
+            println!(
+                "  - {} (mode: {}, content_type: {})",
+                t.name, t.mode, t.content_type
+            );
         }
 
         // Find a real JSONL file to test against
@@ -830,7 +841,11 @@ mod tests {
                 if let Ok(session_entries) = std::fs::read_dir(&project_dir) {
                     for session_entry in session_entries.filter_map(|e| e.ok()) {
                         let session_path = session_entry.path();
-                        if session_path.extension().map(|e| e == "jsonl").unwrap_or(false) {
+                        if session_path
+                            .extension()
+                            .map(|e| e == "jsonl")
+                            .unwrap_or(false)
+                        {
                             // Skip subagent files
                             let fname = session_path
                                 .file_stem()
@@ -855,12 +870,8 @@ mod tests {
 
                             let mut total_triggered = 0;
                             for (i, entry) in entries.iter().enumerate() {
-                                let results = evaluate_triggers(
-                                    entry,
-                                    &triggers,
-                                    &ctx,
-                                    Some((i + 1) as u32),
-                                );
+                                let results =
+                                    evaluate_triggers(entry, &triggers, &ctx, Some((i + 1) as u32));
                                 for r in &results {
                                     if total_triggered < 10 {
                                         println!(

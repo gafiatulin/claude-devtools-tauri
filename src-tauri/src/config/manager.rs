@@ -30,8 +30,8 @@ impl ConfigManager {
     /// If the file does not exist, returns a manager with defaults.
     pub fn load(path: &Path) -> Result<Self, String> {
         let config = if path.exists() {
-            let data = fs::read_to_string(path)
-                .map_err(|e| format!("Failed to read config file: {e}"))?;
+            let data =
+                fs::read_to_string(path).map_err(|e| format!("Failed to read config file: {e}"))?;
             let mut loaded: AppConfig = serde_json::from_str(&data)
                 .map_err(|e| format!("Failed to parse config JSON: {e}"))?;
 
@@ -51,7 +51,10 @@ impl ConfigManager {
 
     /// Atomic write: write to a temp file in the same directory, then rename.
     pub fn save(&self) -> Result<(), String> {
-        let config = self.config.read().map_err(|e| format!("Read lock error: {e}"))?;
+        let config = self
+            .config
+            .read()
+            .map_err(|e| format!("Read lock error: {e}"))?;
         let json = serde_json::to_string_pretty(&*config)
             .map_err(|e| format!("Failed to serialize config: {e}"))?;
 
@@ -81,13 +84,19 @@ impl ConfigManager {
     /// Serialize the current config directly from the read lock, avoiding
     /// a full AppConfig clone. Returns a serde_json::Value ready for Tauri.
     pub fn get_serialized(&self) -> Result<serde_json::Value, String> {
-        let guard = self.config.read().map_err(|e| format!("Read lock error: {e}"))?;
+        let guard = self
+            .config
+            .read()
+            .map_err(|e| format!("Read lock error: {e}"))?;
         serde_json::to_value(&*guard).map_err(|e| format!("Serialization error: {e}"))
     }
 
     /// Update a top-level section of the config by merging JSON data.
     pub fn update(&self, section: &str, data: serde_json::Value) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
 
         // Helper: merge patch fields into a serialized section, then deserialize back.
         // This allows callers to send partial updates (e.g. just { "theme": "system" })
@@ -109,8 +118,7 @@ impl ConfigManager {
 
         match section {
             "notifications" => {
-                config.notifications =
-                    merge_patch(&config.notifications, data, "notifications")?;
+                config.notifications = merge_patch(&config.notifications, data, "notifications")?;
             }
             "general" => {
                 config.general = merge_patch(&config.general, data, "general")?;
@@ -135,7 +143,10 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn add_ignore_regex(&self, pattern: String) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         if !config.notifications.ignored_regex.contains(&pattern) {
             config.notifications.ignored_regex.push(pattern);
         }
@@ -146,7 +157,10 @@ impl ConfigManager {
     }
 
     pub fn remove_ignore_regex(&self, pattern: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         config.notifications.ignored_regex.retain(|p| p != pattern);
         let snapshot = config.clone();
         drop(config);
@@ -159,9 +173,19 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn add_ignore_repository(&self, repository_id: String) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
-        if !config.notifications.ignored_repositories.contains(&repository_id) {
-            config.notifications.ignored_repositories.push(repository_id);
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
+        if !config
+            .notifications
+            .ignored_repositories
+            .contains(&repository_id)
+        {
+            config
+                .notifications
+                .ignored_repositories
+                .push(repository_id);
         }
         let snapshot = config.clone();
         drop(config);
@@ -170,7 +194,10 @@ impl ConfigManager {
     }
 
     pub fn remove_ignore_repository(&self, repository_id: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         config
             .notifications
             .ignored_repositories
@@ -186,7 +213,10 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn snooze(&self, minutes: u32) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         let now_ms = chrono::Utc::now().timestamp_millis() as f64;
         let snooze_until = now_ms + (minutes as f64 * 60.0 * 1000.0);
         config.notifications.snoozed_until = Some(snooze_until);
@@ -198,7 +228,10 @@ impl ConfigManager {
     }
 
     pub fn clear_snooze(&self) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         config.notifications.snoozed_until = None;
         let snapshot = config.clone();
         drop(config);
@@ -211,7 +244,10 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn add_trigger(&self, trigger: NotificationTrigger) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         config.notifications.triggers.push(trigger);
         let snapshot = config.clone();
         drop(config);
@@ -224,7 +260,10 @@ impl ConfigManager {
         id: &str,
         updates: serde_json::Value,
     ) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
 
         let trigger = config
             .notifications
@@ -254,7 +293,10 @@ impl ConfigManager {
     }
 
     pub fn remove_trigger(&self, id: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         config.notifications.triggers.retain(|t| t.id != id);
         let snapshot = config.clone();
         drop(config);
@@ -276,7 +318,10 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn pin_session(&self, project_id: &str, session_id: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         let pinned = config
             .sessions
             .pinned_sessions
@@ -297,7 +342,10 @@ impl ConfigManager {
     }
 
     pub fn unpin_session(&self, project_id: &str, session_id: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         if let Some(pinned) = config.sessions.pinned_sessions.get_mut(project_id) {
             pinned.retain(|p| p.session_id != session_id);
         }
@@ -312,7 +360,10 @@ impl ConfigManager {
     // =========================================================================
 
     pub fn hide_session(&self, project_id: &str, session_id: &str) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         let hidden = config
             .sessions
             .hidden_sessions
@@ -332,12 +383,11 @@ impl ConfigManager {
         Ok(snapshot)
     }
 
-    pub fn unhide_session(
-        &self,
-        project_id: &str,
-        session_id: &str,
-    ) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+    pub fn unhide_session(&self, project_id: &str, session_id: &str) -> Result<AppConfig, String> {
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         if let Some(hidden) = config.sessions.hidden_sessions.get_mut(project_id) {
             hidden.retain(|h| h.session_id != session_id);
         }
@@ -352,7 +402,10 @@ impl ConfigManager {
         project_id: &str,
         session_ids: &[String],
     ) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         let hidden = config
             .sessions
             .hidden_sessions
@@ -380,7 +433,10 @@ impl ConfigManager {
         project_id: &str,
         session_ids: &[String],
     ) -> Result<AppConfig, String> {
-        let mut config = self.config.write().map_err(|e| format!("Write lock error: {e}"))?;
+        let mut config = self
+            .config
+            .write()
+            .map_err(|e| format!("Write lock error: {e}"))?;
         if let Some(hidden) = config.sessions.hidden_sessions.get_mut(project_id) {
             hidden.retain(|h| !session_ids.contains(&h.session_id));
         }
@@ -488,11 +544,19 @@ mod tests {
 
         let config = manager.add_trigger(trigger).unwrap();
         assert_eq!(config.notifications.triggers.len(), initial_count + 1);
-        assert!(config.notifications.triggers.iter().any(|t| t.id == "test-trigger-1"));
+        assert!(config
+            .notifications
+            .triggers
+            .iter()
+            .any(|t| t.id == "test-trigger-1"));
 
         let config = manager.remove_trigger("test-trigger-1").unwrap();
         assert_eq!(config.notifications.triggers.len(), initial_count);
-        assert!(!config.notifications.triggers.iter().any(|t| t.id == "test-trigger-1"));
+        assert!(!config
+            .notifications
+            .triggers
+            .iter()
+            .any(|t| t.id == "test-trigger-1"));
     }
 
     #[test]
@@ -531,18 +595,31 @@ mod tests {
     fn test_add_and_remove_ignore_regex() {
         let (_tmp, manager) = make_temp_manager();
 
-        let config = manager.add_ignore_regex("test-pattern.*".to_string()).unwrap();
-        assert!(config.notifications.ignored_regex.contains(&"test-pattern.*".to_string()));
+        let config = manager
+            .add_ignore_regex("test-pattern.*".to_string())
+            .unwrap();
+        assert!(config
+            .notifications
+            .ignored_regex
+            .contains(&"test-pattern.*".to_string()));
 
         // Adding duplicate should be idempotent
-        let config = manager.add_ignore_regex("test-pattern.*".to_string()).unwrap();
-        let count = config.notifications.ignored_regex.iter()
+        let config = manager
+            .add_ignore_regex("test-pattern.*".to_string())
+            .unwrap();
+        let count = config
+            .notifications
+            .ignored_regex
+            .iter()
             .filter(|p| *p == "test-pattern.*")
             .count();
         assert_eq!(count, 1);
 
         let config = manager.remove_ignore_regex("test-pattern.*").unwrap();
-        assert!(!config.notifications.ignored_regex.contains(&"test-pattern.*".to_string()));
+        assert!(!config
+            .notifications
+            .ignored_regex
+            .contains(&"test-pattern.*".to_string()));
     }
 
     #[test]
@@ -568,14 +645,15 @@ mod tests {
     fn test_hide_and_unhide_sessions() {
         let (_tmp, manager) = make_temp_manager();
 
-        let config = manager.hide_sessions("proj1", &[
-            "sess1".to_string(),
-            "sess2".to_string(),
-        ]).unwrap();
+        let config = manager
+            .hide_sessions("proj1", &["sess1".to_string(), "sess2".to_string()])
+            .unwrap();
         let hidden = config.sessions.hidden_sessions.get("proj1").unwrap();
         assert_eq!(hidden.len(), 2);
 
-        let config = manager.unhide_sessions("proj1", &["sess1".to_string()]).unwrap();
+        let config = manager
+            .unhide_sessions("proj1", &["sess1".to_string()])
+            .unwrap();
         let hidden = config.sessions.hidden_sessions.get("proj1").unwrap();
         assert_eq!(hidden.len(), 1);
         assert_eq!(hidden[0].session_id, "sess2");

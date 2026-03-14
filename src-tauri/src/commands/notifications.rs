@@ -15,39 +15,27 @@ pub fn get_notifications(
 }
 
 #[tauri::command]
-pub fn mark_notification_read(
-    id: String,
-    state: State<AppState>,
-) -> Result<bool, String> {
+pub fn mark_notification_read(id: String, state: State<AppState>) -> Result<bool, String> {
     state.notifications.mark_read(&id)
 }
 
 #[tauri::command]
-pub fn mark_all_notifications_read(
-    state: State<AppState>,
-) -> Result<bool, String> {
+pub fn mark_all_notifications_read(state: State<AppState>) -> Result<bool, String> {
     state.notifications.mark_all_read()
 }
 
 #[tauri::command]
-pub fn delete_notification(
-    id: String,
-    state: State<AppState>,
-) -> Result<bool, String> {
+pub fn delete_notification(id: String, state: State<AppState>) -> Result<bool, String> {
     state.notifications.delete(&id)
 }
 
 #[tauri::command]
-pub fn clear_notifications(
-    state: State<AppState>,
-) -> Result<bool, String> {
+pub fn clear_notifications(state: State<AppState>) -> Result<bool, String> {
     state.notifications.clear()?;
     Ok(true)
 }
 
 #[tauri::command]
-pub fn get_unread_count(
-    state: State<AppState>,
-) -> Result<u32, String> {
+pub fn get_unread_count(state: State<AppState>) -> Result<u32, String> {
     Ok(state.notifications.get_unread_count() as u32)
 }

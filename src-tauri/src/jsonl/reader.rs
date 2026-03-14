@@ -78,8 +78,7 @@ impl Iterator for JsonlIterator {
 /// it needs two passes (compact-boundary UUID detection then message building).
 /// In that case use `read_jsonl_file()` which calls `collect()` internally.
 pub fn read_jsonl_iter(path: &Path) -> Result<JsonlIterator, String> {
-    let file =
-        File::open(path).map_err(|e| format!("Failed to open {}: {e}", path.display()))?;
+    let file = File::open(path).map_err(|e| format!("Failed to open {}: {e}", path.display()))?;
     Ok(JsonlIterator {
         reader: BufReader::new(file),
         path_display: path.display().to_string(),
@@ -123,12 +122,20 @@ mod tests {
 
         for (i, case) in cases.iter().enumerate() {
             let result = super::super::parser::parse_entry(case);
-            assert!(result.is_ok(), "Failed to parse case {}: {:?}", i, result.err());
+            assert!(
+                result.is_ok(),
+                "Failed to parse case {}: {:?}",
+                i,
+                result.err()
+            );
         }
 
         // Verify the progress entry is parsed as Progress
         let progress = super::super::parser::parse_entry(cases[6]).unwrap();
-        assert!(matches!(progress, crate::models::jsonl::ChatHistoryEntry::Progress(_)));
+        assert!(matches!(
+            progress,
+            crate::models::jsonl::ChatHistoryEntry::Progress(_)
+        ));
     }
 
     /// Real-world: file-history-snapshot with object values in trackedFileBackups.
@@ -136,10 +143,17 @@ mod tests {
     fn test_parse_file_history_snapshot_with_object_backups() {
         let json = r#"{"type":"file-history-snapshot","messageId":"m1","snapshot":{"messageId":"m1","trackedFileBackups":{"/some/file.md":{"backupFileName":null,"version":1,"backupTime":"2026-02-17T01:29:34.463Z"}},"timestamp":"2026-02-17T01:21:09.624Z"},"isSnapshotUpdate":true}"#;
         let result = super::super::parser::parse_entry(json);
-        assert!(result.is_ok(), "file-history-snapshot with object backup values failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "file-history-snapshot with object backup values failed: {:?}",
+            result.err()
+        );
         let msgs = super::super::parser::parse_entries_to_messages(vec![result.unwrap()]);
         assert_eq!(msgs.len(), 1);
-        assert_eq!(msgs[0].message_type, crate::models::domain::MessageType::FileHistorySnapshot);
+        assert_eq!(
+            msgs[0].message_type,
+            crate::models::domain::MessageType::FileHistorySnapshot
+        );
     }
 
     /// Real-world: user message content containing a "document" block (e.g., PDF).
@@ -147,10 +161,17 @@ mod tests {
     fn test_parse_user_message_with_document_content_block() {
         let json = r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":[{"type":"document","source":{"type":"base64","media_type":"application/pdf","data":"AAAA"}}]},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#;
         let result = super::super::parser::parse_entry(json);
-        assert!(result.is_ok(), "user message with document block failed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "user message with document block failed: {:?}",
+            result.err()
+        );
         let msgs = super::super::parser::parse_entries_to_messages(vec![result.unwrap()]);
         assert_eq!(msgs.len(), 1);
-        assert_eq!(msgs[0].message_type, crate::models::domain::MessageType::User);
+        assert_eq!(
+            msgs[0].message_type,
+            crate::models::domain::MessageType::User
+        );
     }
 
     /// Test that parse_entries_to_messages filters out Unknown entries.
@@ -223,10 +244,17 @@ mod tests {
 
         // Verify iterator produces same count
         let iter_count = read_jsonl_iter(&path).unwrap().count();
-        assert_eq!(iter_count, entries.len(), "Iterator and read_jsonl_file disagree on entry count");
+        assert_eq!(
+            iter_count,
+            entries.len(),
+            "Iterator and read_jsonl_file disagree on entry count"
+        );
 
         // Convert to messages
         let messages = super::super::parser::parse_entries_to_messages(entries);
-        assert!(!messages.is_empty(), "No messages converted from real entries");
+        assert!(
+            !messages.is_empty(),
+            "No messages converted from real entries"
+        );
     }
 }

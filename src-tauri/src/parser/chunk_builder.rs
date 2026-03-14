@@ -340,16 +340,10 @@ fn extract_command_output(msg: &ParsedMessage) -> String {
 
             if let Some(inner) = s.strip_prefix(stdout_tag) {
                 let close_tag = "</local-command-stdout>";
-                inner
-                    .strip_suffix(close_tag)
-                    .unwrap_or(inner)
-                    .to_string()
+                inner.strip_suffix(close_tag).unwrap_or(inner).to_string()
             } else if let Some(inner) = s.strip_prefix(stderr_tag) {
                 let close_tag = "</local-command-stderr>";
-                inner
-                    .strip_suffix(close_tag)
-                    .unwrap_or(inner)
-                    .to_string()
+                inner.strip_suffix(close_tag).unwrap_or(inner).to_string()
             } else {
                 s.clone()
             }

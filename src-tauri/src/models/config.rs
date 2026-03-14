@@ -36,7 +36,7 @@ pub struct NotificationsConfig {
 pub struct GeneralConfig {
     // launchAtLogin dropped — Electron-specific
     // showDockIcon dropped — Electron-specific
-    pub theme: String, // "dark" | "light" | "system"
+    pub theme: String,       // "dark" | "light" | "system"
     pub default_tab: String, // "dashboard" | "last-session"
     pub claude_root_path: Option<String>,
 }

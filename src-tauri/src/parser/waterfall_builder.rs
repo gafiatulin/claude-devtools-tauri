@@ -332,13 +332,11 @@ mod tests {
 
     #[test]
     fn test_build_waterfall_user_chunk() {
-        let detail = make_session_detail(vec![
-            EnhancedChunk::User(EnhancedUserChunkData {
-                base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:01Z"),
-                user_message: make_user_msg("u1", "2025-01-01T00:00:00Z"),
-                enhanced: true,
-            }),
-        ]);
+        let detail = make_session_detail(vec![EnhancedChunk::User(EnhancedUserChunkData {
+            base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:01Z"),
+            user_message: make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            enhanced: true,
+        })]);
 
         let waterfall = build_waterfall(&detail);
         assert_eq!(waterfall.items.len(), 1);
@@ -368,18 +366,16 @@ mod tests {
             progress: None,
         };
 
-        let detail = make_session_detail(vec![
-            EnhancedChunk::Ai(EnhancedAiChunkData {
-                base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:02Z"),
-                responses: vec![ai_msg],
-                processes: Vec::new(),
-                sidechain_messages: Vec::new(),
-                tool_executions: vec![te],
-                semantic_steps: Vec::new(),
-                semantic_step_groups: None,
-                enhanced: true,
-            }),
-        ]);
+        let detail = make_session_detail(vec![EnhancedChunk::Ai(EnhancedAiChunkData {
+            base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:02Z"),
+            responses: vec![ai_msg],
+            processes: Vec::new(),
+            sidechain_messages: Vec::new(),
+            tool_executions: vec![te],
+            semantic_steps: Vec::new(),
+            semantic_step_groups: None,
+            enhanced: true,
+        })]);
 
         let waterfall = build_waterfall(&detail);
         assert_eq!(waterfall.items.len(), 2); // chunk + tool
@@ -392,18 +388,16 @@ mod tests {
 
     #[test]
     fn test_build_waterfall_ai_label_no_tools() {
-        let detail = make_session_detail(vec![
-            EnhancedChunk::Ai(EnhancedAiChunkData {
-                base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:01Z"),
-                responses: vec![make_ai_msg("a1", "2025-01-01T00:00:00Z")],
-                processes: Vec::new(),
-                sidechain_messages: Vec::new(),
-                tool_executions: Vec::new(),
-                semantic_steps: Vec::new(),
-                semantic_step_groups: None,
-                enhanced: true,
-            }),
-        ]);
+        let detail = make_session_detail(vec![EnhancedChunk::Ai(EnhancedAiChunkData {
+            base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:01Z"),
+            responses: vec![make_ai_msg("a1", "2025-01-01T00:00:00Z")],
+            processes: Vec::new(),
+            sidechain_messages: Vec::new(),
+            tool_executions: Vec::new(),
+            semantic_steps: Vec::new(),
+            semantic_step_groups: None,
+            enhanced: true,
+        })]);
 
         let waterfall = build_waterfall(&detail);
         assert_eq!(waterfall.items[0].label, "AI response");
@@ -411,13 +405,11 @@ mod tests {
 
     #[test]
     fn test_build_waterfall_compact_chunk() {
-        let detail = make_session_detail(vec![
-            EnhancedChunk::Compact(EnhancedCompactChunkData {
-                base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:00Z"),
-                message: make_user_msg("u1", "2025-01-01T00:00:00Z"),
-                enhanced: true,
-            }),
-        ]);
+        let detail = make_session_detail(vec![EnhancedChunk::Compact(EnhancedCompactChunkData {
+            base: make_base("c1", "2025-01-01T00:00:00Z", "2025-01-01T00:00:00Z"),
+            message: make_user_msg("u1", "2025-01-01T00:00:00Z"),
+            enhanced: true,
+        })]);
 
         let waterfall = build_waterfall(&detail);
         assert_eq!(waterfall.items.len(), 1);

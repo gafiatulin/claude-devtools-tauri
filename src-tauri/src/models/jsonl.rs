@@ -45,7 +45,7 @@ pub enum ContentBlock {
 pub struct ImageSource {
     #[serde(rename = "type")]
     pub source_type: String, // "base64"
-    pub media_type: String,  // "image/png" | "image/jpeg" | "image/gif" | "image/webp"
+    pub media_type: String, // "image/png" | "image/jpeg" | "image/gif" | "image/webp"
     pub data: String,
 }
 
@@ -418,7 +418,9 @@ impl ChatHistoryEntry {
     pub fn is_conversational(&self) -> bool {
         matches!(
             self,
-            ChatHistoryEntry::User(_) | ChatHistoryEntry::Assistant(_) | ChatHistoryEntry::System(_)
+            ChatHistoryEntry::User(_)
+                | ChatHistoryEntry::Assistant(_)
+                | ChatHistoryEntry::System(_)
         )
     }
 

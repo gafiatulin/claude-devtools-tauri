@@ -271,7 +271,10 @@ mod serde_tests {
         let json = serde_json::to_string(&dt).unwrap();
         println!("Serialized DateTime<Utc>: {}", json);
         assert!(json.contains("2024-01-15"), "Should contain date");
-        assert!(json.contains("T12:30:00"), "Should contain time with T separator");
+        assert!(
+            json.contains("T12:30:00"),
+            "Should contain time with T separator"
+        );
         assert!(
             json.ends_with("Z\"") || json.contains("+00:00"),
             "Should have UTC indicator, got: {}",
@@ -453,14 +456,32 @@ mod serde_tests {
         println!("Session with Nones: {}", json);
 
         // These None fields should be absent from JSON (matching Node.js undefined)
-        assert!(value.get("firstMessage").is_none(), "None firstMessage should be omitted");
-        assert!(value.get("gitBranch").is_none(), "None gitBranch should be omitted");
-        assert!(value.get("isOngoing").is_none(), "None isOngoing should be omitted");
-        assert!(value.get("todoData").is_none(), "None todoData should be omitted");
+        assert!(
+            value.get("firstMessage").is_none(),
+            "None firstMessage should be omitted"
+        );
+        assert!(
+            value.get("gitBranch").is_none(),
+            "None gitBranch should be omitted"
+        );
+        assert!(
+            value.get("isOngoing").is_none(),
+            "None isOngoing should be omitted"
+        );
+        assert!(
+            value.get("todoData").is_none(),
+            "None todoData should be omitted"
+        );
 
         // These required fields must always be present
         assert!(value.get("id").is_some(), "id must always be present");
-        assert!(value.get("hasSubagents").is_some(), "hasSubagents must always be present");
-        assert!(value.get("messageCount").is_some(), "messageCount must always be present");
+        assert!(
+            value.get("hasSubagents").is_some(),
+            "hasSubagents must always be present"
+        );
+        assert!(
+            value.get("messageCount").is_some(),
+            "messageCount must always be present"
+        );
     }
 }

@@ -27,8 +27,8 @@ pub fn scan_session_metadata_cached(
     cache: &SessionCache,
 ) -> Result<Arc<Session>, String> {
     // Read metadata once — reuse for cache check AND session building
-    let metadata = fs::metadata(path)
-        .map_err(|e| format!("Failed to stat {}: {e}", path.display()))?;
+    let metadata =
+        fs::metadata(path).map_err(|e| format!("Failed to stat {}: {e}", path.display()))?;
     let current_mtime = metadata.modified().ok();
 
     // Check cache — Arc::clone is a cheap pointer copy
@@ -45,7 +45,12 @@ pub fn scan_session_metadata_cached(
 
     // Cache miss: scan from disk, reusing the metadata we already read
     let session = scan_session_metadata_with_meta(
-        path, level, project_id, project_path, &metadata, current_mtime,
+        path,
+        level,
+        project_id,
+        project_path,
+        &metadata,
+        current_mtime,
     )?;
 
     // Wrap in Arc and insert — no extra clone of Session needed
@@ -81,8 +86,8 @@ pub fn scan_sessions_with_cache(
     cache: Option<&SessionCache>,
 ) -> Result<Vec<Session>, String> {
     let project_path = crate::scanner::projects::decode_project_id(project_id);
-    let entries = fs::read_dir(project_dir)
-        .map_err(|e| format!("Failed to read project dir: {e}"))?;
+    let entries =
+        fs::read_dir(project_dir).map_err(|e| format!("Failed to read project dir: {e}"))?;
 
     // Collect paths first, then scan in parallel
     let paths: Vec<_> = entries
@@ -154,8 +159,8 @@ pub fn scan_session_metadata(
     project_id: &str,
     project_path: &str,
 ) -> Result<Session, String> {
-    let metadata = fs::metadata(path)
-        .map_err(|e| format!("Failed to stat {}: {e}", path.display()))?;
+    let metadata =
+        fs::metadata(path).map_err(|e| format!("Failed to stat {}: {e}", path.display()))?;
     let mtime = metadata.modified().ok();
     scan_session_metadata_with_meta(path, level, project_id, project_path, &metadata, mtime)
 }
@@ -234,7 +239,11 @@ fn scan_session_metadata_with_meta(
         compaction_count: deep.compaction_count,
         phase_breakdown: None,
         slug: deep.slug,
-        has_plan_content: if deep.has_plan_content { Some(true) } else { None },
+        has_plan_content: if deep.has_plan_content {
+            Some(true)
+        } else {
+            None
+        },
         session_name: deep.session_name,
     })
 }
@@ -481,16 +490,13 @@ fn parse_session_deep_metadata(path: &Path, mtime: Option<SystemTime>) -> DeepMe
     // file somehow appears recent (e.g. due to filesystem timestamps).
     // Reuse the mtime passed in from the caller to avoid an extra stat() syscall.
     // Fall back to reading metadata if no mtime was provided.
-    let resolved_mtime = mtime.or_else(|| {
-        fs::metadata(path).and_then(|m| m.modified()).ok()
-    });
+    let resolved_mtime = mtime.or_else(|| fs::metadata(path).and_then(|m| m.modified()).ok());
     let recently_modified = resolved_mtime
         .and_then(|mt| SystemTime::now().duration_since(mt).ok())
         .map(|age| age.as_secs() < 300) // 5 minutes
         .unwrap_or(false);
 
-    let is_ongoing = recently_modified
-        && (last_user_is_genuine || last_entry_type != 1);
+    let is_ongoing = recently_modified && (last_user_is_genuine || last_entry_type != 1);
 
     let context_consumption = if total_input_tokens > 0 || total_output_tokens > 0 {
         Some(total_input_tokens + total_output_tokens)
@@ -639,9 +645,7 @@ pub fn scan_sessions_paginated_with_cache(
     let metadata_level = options
         .and_then(|o| o.metadata_level.as_ref())
         .unwrap_or(&SessionMetadataLevel::Deep);
-    let include_total_count = options
-        .and_then(|o| o.include_total_count)
-        .unwrap_or(true);
+    let include_total_count = options.and_then(|o| o.include_total_count).unwrap_or(true);
 
     // Collect all session file metadata for sorting
     let mut session_entries = collect_session_entries(project_dir)?;
@@ -702,7 +706,10 @@ pub fn scan_sessions_paginated_with_cache(
                 match result {
                     Ok(s) => Some(s),
                     Err(e) => {
-                        eprintln!("[scanner] Warning: skipping session {}: {e}", entry.session_id);
+                        eprintln!(
+                            "[scanner] Warning: skipping session {}: {e}",
+                            entry.session_id
+                        );
                         None
                     }
                 }
@@ -744,8 +751,8 @@ struct SessionFileEntry {
 
 /// Collect all session file entries from a project directory.
 fn collect_session_entries(project_dir: &Path) -> Result<Vec<SessionFileEntry>, String> {
-    let entries = fs::read_dir(project_dir)
-        .map_err(|e| format!("Failed to read project dir: {e}"))?;
+    let entries =
+        fs::read_dir(project_dir).map_err(|e| format!("Failed to read project dir: {e}"))?;
 
     let mut result = Vec::new();
 
@@ -812,7 +819,11 @@ pub fn get_sessions_by_ids(
         .iter()
         .filter_map(|session_id| {
             let path = project_dir.join(format!("{session_id}.jsonl"));
-            if path.is_file() { Some(path) } else { None }
+            if path.is_file() {
+                Some(path)
+            } else {
+                None
+            }
         })
         .collect();
 
@@ -822,15 +833,9 @@ pub fn get_sessions_by_ids(
             .par_iter()
             .filter_map(|path| {
                 if let Some(c) = cache {
-                    scan_session_metadata_cached(
-                        path,
-                        metadata_level,
-                        project_id,
-                        &project_path,
-                        c,
-                    )
-                    .ok()
-                    .map(Arc::unwrap_or_clone)
+                    scan_session_metadata_cached(path, metadata_level, project_id, &project_path, c)
+                        .ok()
+                        .map(Arc::unwrap_or_clone)
                 } else {
                     scan_session_metadata(path, metadata_level, project_id, &project_path).ok()
                 }
@@ -855,7 +860,10 @@ pub fn scan_session_detail(
     let session_path = project_dir.join(format!("{session_id}.jsonl"));
 
     if !session_path.is_file() {
-        return Err(format!("Session file not found: {}", session_path.display()));
+        return Err(format!(
+            "Session file not found: {}",
+            session_path.display()
+        ));
     }
 
     // Parse the JSONL file
@@ -1007,7 +1015,10 @@ pub fn get_session_metrics(
     let session_path = project_dir.join(format!("{session_id}.jsonl"));
 
     if !session_path.is_file() {
-        return Err(format!("Session file not found: {}", session_path.display()));
+        return Err(format!(
+            "Session file not found: {}",
+            session_path.display()
+        ));
     }
 
     let current_mtime = std::fs::metadata(&session_path)
@@ -1056,8 +1067,7 @@ mod tests {
             return;
         }
 
-        let projects =
-            crate::scanner::projects::scan_projects(&claude_root).unwrap();
+        let projects = crate::scanner::projects::scan_projects(&claude_root).unwrap();
         println!("Found {} projects", projects.len());
         for p in projects.iter().take(3) {
             println!(
@@ -1083,8 +1093,7 @@ mod tests {
             return;
         }
 
-        let projects =
-            crate::scanner::projects::scan_projects(&claude_root).unwrap();
+        let projects = crate::scanner::projects::scan_projects(&claude_root).unwrap();
         println!("Found {} projects total", projects.len());
 
         // Find first project that has at least one session
@@ -1154,10 +1163,7 @@ mod tests {
                 .map(|c| c.to_string())
                 .unwrap_or_else(|| "0".to_string())
         );
-        println!(
-            "  hasSubagents: {}",
-            session.has_subagents
-        );
+        println!("  hasSubagents: {}", session.has_subagents);
 
         assert!(session.message_count > 0, "Expected at least one message");
     }
@@ -1193,7 +1199,11 @@ mod tests {
                             }
                             if let Ok(meta) = std::fs::metadata(&path) {
                                 let size = meta.len();
-                                if largest_file.as_ref().map(|(_, s)| size > *s).unwrap_or(true) {
+                                if largest_file
+                                    .as_ref()
+                                    .map(|(_, s)| size > *s)
+                                    .unwrap_or(true)
+                                {
                                     largest_file = Some((path, size));
                                 }
                             }
@@ -1236,8 +1246,11 @@ mod tests {
 
         // Phase 3: Build chunks
         let start = std::time::Instant::now();
-        let chunks =
-            crate::parser::chunk_builder::build_chunks(&messages, &[], &std::collections::HashMap::new());
+        let chunks = crate::parser::chunk_builder::build_chunks(
+            &messages,
+            &[],
+            &std::collections::HashMap::new(),
+        );
         let chunk_time = start.elapsed();
         println!("  Built {} chunks in {:?}", chunks.len(), chunk_time);
 
@@ -1274,9 +1287,8 @@ mod tests {
         let jsonl = r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"test-session","version":"2.1","gitBranch":"main","message":{"role":"user","content":"hello world"},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#;
         std::fs::write(&session_path, jsonl).unwrap();
 
-        let cache: SessionCache = Mutex::new(lru::LruCache::new(
-            std::num::NonZeroUsize::new(10).unwrap(),
-        ));
+        let cache: SessionCache =
+            Mutex::new(lru::LruCache::new(std::num::NonZeroUsize::new(10).unwrap()));
 
         // First call: cache miss, should read from disk
         let result1 = scan_session_metadata_cached(
@@ -1317,9 +1329,8 @@ mod tests {
         let session_path = tmp.path().join("test-session.jsonl");
         std::fs::write(&session_path, r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"hello"},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#).unwrap();
 
-        let cache: SessionCache = Mutex::new(lru::LruCache::new(
-            std::num::NonZeroUsize::new(10).unwrap(),
-        ));
+        let cache: SessionCache =
+            Mutex::new(lru::LruCache::new(std::num::NonZeroUsize::new(10).unwrap()));
 
         // Populate cache
         scan_session_metadata_cached(
@@ -1345,9 +1356,8 @@ mod tests {
         let session_path = tmp.path().join("test-session.jsonl");
         std::fs::write(&session_path, r#"{"type":"user","parentUuid":null,"isSidechain":false,"userType":"external","cwd":"/tmp","sessionId":"s1","version":"2.1","gitBranch":"main","message":{"role":"user","content":"hello"},"timestamp":"2025-01-01T00:00:00Z","uuid":"u1"}"#).unwrap();
 
-        let cache: SessionCache = Mutex::new(lru::LruCache::new(
-            std::num::NonZeroUsize::new(10).unwrap(),
-        ));
+        let cache: SessionCache =
+            Mutex::new(lru::LruCache::new(std::num::NonZeroUsize::new(10).unwrap()));
 
         // Populate cache
         let result1 = scan_session_metadata_cached(

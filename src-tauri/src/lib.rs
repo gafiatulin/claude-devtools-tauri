@@ -27,8 +27,10 @@ pub struct AppState {
     pub config: config::manager::ConfigManager,
     pub notifications: notifications::store::NotificationStore,
     claude_root: PathBuf,
-    pub session_cache: Mutex<lru::LruCache<PathBuf, (std::time::SystemTime, Arc<models::domain::Session>)>>,
-    pub metrics_cache: Mutex<lru::LruCache<PathBuf, (std::time::SystemTime, models::domain::SessionMetrics)>>,
+    pub session_cache:
+        Mutex<lru::LruCache<PathBuf, (std::time::SystemTime, Arc<models::domain::Session>)>>,
+    pub metrics_cache:
+        Mutex<lru::LruCache<PathBuf, (std::time::SystemTime, models::domain::SessionMetrics)>>,
     /// Cached project list with timestamp. Avoids redundant scan_projects() calls
     /// when multiple commands need the project list within a short window.
     pub projects_cache: Mutex<Option<(std::time::Instant, Vec<models::domain::Project>)>>,
@@ -80,11 +82,10 @@ pub fn run() {
 
     // Initialize config manager
     let config_path = config::manager::ConfigManager::default_path();
-    let config_manager = config::manager::ConfigManager::load(&config_path)
-        .unwrap_or_else(|e| {
-            eprintln!("[config] Failed to load config, using defaults: {e}");
-            config::manager::ConfigManager::new(config_path)
-        });
+    let config_manager = config::manager::ConfigManager::load(&config_path).unwrap_or_else(|e| {
+        eprintln!("[config] Failed to load config, using defaults: {e}");
+        config::manager::ConfigManager::new(config_path)
+    });
 
     let claude_root = resolve_claude_root(&config_manager);
 

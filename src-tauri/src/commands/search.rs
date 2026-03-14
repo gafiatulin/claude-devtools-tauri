@@ -14,5 +14,10 @@ pub fn search_sessions(
     let claude_root = state.claude_root();
     let project_dir = claude_root.join("projects").join(&project_id);
     let max_results = max_results.unwrap_or(50) as usize;
-    Ok(crate::search::engine::search_sessions(&project_dir, &project_id, &query, max_results))
+    Ok(crate::search::engine::search_sessions(
+        &project_dir,
+        &project_id,
+        &query,
+        max_results,
+    ))
 }

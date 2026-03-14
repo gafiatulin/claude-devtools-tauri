@@ -19,8 +19,11 @@ pub const SYSTEM_OUTPUT_TAGS: &[&str] = &[
     TASK_NOTIFICATION_TAG,
 ];
 
-pub const HARD_NOISE_TAGS: &[&str] =
-    &[LOCAL_COMMAND_CAVEAT_TAG, SYSTEM_REMINDER_TAG, TASK_NOTIFICATION_TAG];
+pub const HARD_NOISE_TAGS: &[&str] = &[
+    LOCAL_COMMAND_CAVEAT_TAG,
+    SYSTEM_REMINDER_TAG,
+    TASK_NOTIFICATION_TAG,
+];
 
 // =============================================================================
 // Trigger Color Definitions
@@ -33,12 +36,44 @@ pub struct TriggerColorDef {
 }
 
 pub const TRIGGER_COLORS: &[TriggerColorDef] = &[
-    TriggerColorDef { key: "red", label: "Red", hex: "#ef4444" },
-    TriggerColorDef { key: "orange", label: "Orange", hex: "#f97316" },
-    TriggerColorDef { key: "yellow", label: "Yellow", hex: "#eab308" },
-    TriggerColorDef { key: "green", label: "Green", hex: "#22c55e" },
-    TriggerColorDef { key: "blue", label: "Blue", hex: "#3b82f6" },
-    TriggerColorDef { key: "purple", label: "Purple", hex: "#a855f7" },
-    TriggerColorDef { key: "pink", label: "Pink", hex: "#ec4899" },
-    TriggerColorDef { key: "cyan", label: "Cyan", hex: "#06b6d4" },
+    TriggerColorDef {
+        key: "red",
+        label: "Red",
+        hex: "#ef4444",
+    },
+    TriggerColorDef {
+        key: "orange",
+        label: "Orange",
+        hex: "#f97316",
+    },
+    TriggerColorDef {
+        key: "yellow",
+        label: "Yellow",
+        hex: "#eab308",
+    },
+    TriggerColorDef {
+        key: "green",
+        label: "Green",
+        hex: "#22c55e",
+    },
+    TriggerColorDef {
+        key: "blue",
+        label: "Blue",
+        hex: "#3b82f6",
+    },
+    TriggerColorDef {
+        key: "purple",
+        label: "Purple",
+        hex: "#a855f7",
+    },
+    TriggerColorDef {
+        key: "pink",
+        label: "Pink",
+        hex: "#ec4899",
+    },
+    TriggerColorDef {
+        key: "cyan",
+        label: "Cyan",
+        hex: "#06b6d4",
+    },
 ];

@@ -144,11 +144,7 @@ fn legacy_agent_belongs_to_session(path: &Path, session_id: &str) -> bool {
 }
 
 /// Parse a subagent JSONL file into a Process.
-fn parse_subagent_file(
-    path: &Path,
-    agent_id: &str,
-    _session_id: &str,
-) -> Result<Process, String> {
+fn parse_subagent_file(path: &Path, agent_id: &str, _session_id: &str) -> Result<Process, String> {
     let entries = crate::jsonl::reader::read_jsonl_file(path)?;
     let messages = crate::jsonl::parser::parse_entries_to_messages(entries);
 
@@ -156,8 +152,14 @@ fn parse_subagent_file(
         return Err("Subagent file is empty".to_string());
     }
 
-    let start_time = messages.first().map(|m| m.timestamp.clone()).unwrap_or_default();
-    let end_time = messages.last().map(|m| m.timestamp.clone()).unwrap_or_default();
+    let start_time = messages
+        .first()
+        .map(|m| m.timestamp.clone())
+        .unwrap_or_default();
+    let end_time = messages
+        .last()
+        .map(|m| m.timestamp.clone())
+        .unwrap_or_default();
 
     // Compute duration
     let duration_ms = compute_duration_ms(&start_time, &end_time);
@@ -172,16 +174,12 @@ fn parse_subagent_file(
     let subagent_type = extract_subagent_type(&messages);
 
     // Find parent task ID by looking at the first message's sourceToolUseID
-    let parent_task_id = messages
-        .first()
-        .and_then(|m| m.source_tool_use_id.clone());
+    let parent_task_id = messages.first().and_then(|m| m.source_tool_use_id.clone());
 
     // Detect if ongoing (last message is a user message waiting for response)
     let is_ongoing = messages
         .last()
-        .map(|m| {
-            m.message_type == crate::models::domain::MessageType::User && !m.is_meta
-        });
+        .map(|m| m.message_type == crate::models::domain::MessageType::User && !m.is_meta);
 
     Ok(Process {
         id: agent_id.to_string(),

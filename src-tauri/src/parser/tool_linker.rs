@@ -21,8 +21,7 @@ pub fn link_tool_calls(
     for msg in messages {
         if msg.message_type == MessageType::Assistant {
             for tc in &msg.tool_calls {
-                tool_call_map
-                    .insert(tc.id.clone(), (tc.clone(), msg.timestamp.clone()));
+                tool_call_map.insert(tc.id.clone(), (tc.clone(), msg.timestamp.clone()));
             }
         }
     }
@@ -307,9 +306,7 @@ mod tests {
     #[test]
     fn test_link_tool_calls_unmatched() {
         let tc = make_tool_call("tc1", "Read");
-        let messages = vec![
-            make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc]),
-        ];
+        let messages = vec![make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc])];
 
         let executions = link_tool_calls(&messages, &HashMap::new());
         assert_eq!(executions.len(), 1);
@@ -321,9 +318,7 @@ mod tests {
     #[test]
     fn test_link_tool_calls_with_progress() {
         let tc = make_tool_call("tc1", "Bash");
-        let messages = vec![
-            make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc]),
-        ];
+        let messages = vec![make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc])];
 
         let mut progress_map = HashMap::new();
         progress_map.insert(
@@ -477,9 +472,7 @@ mod tests {
             task_subagent_type: None,
         };
 
-        let messages = vec![
-            make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc]),
-        ];
+        let messages = vec![make_assistant_msg("a1", "2025-01-01T00:00:00Z", vec![tc])];
 
         // No processes match
         let task_execs = build_task_executions(&messages, &[]);
