@@ -62,6 +62,8 @@ jobs:
 
           security import cert.p12 -k $KEYCHAIN_PATH -P build \
             -T /usr/bin/codesign -T /usr/bin/security
+          security add-trusted-cert -d -r trustRoot \
+            -k $KEYCHAIN_PATH cert.pem
           security set-key-partition-list -S apple-tool:,apple: \
             -s -k "build" $KEYCHAIN_PATH
 
