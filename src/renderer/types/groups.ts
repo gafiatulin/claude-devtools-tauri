@@ -198,6 +198,12 @@ export interface LinkedToolItem {
   skillInstructions?: string;
   /** Pre-computed token count for skill instructions */
   skillInstructionsTokenCount?: number;
+  /**
+   * Actual output from a corresponding TaskOutput tool call.
+   * Populated for background Bash commands (run_in_background) by matching
+   * the background task ID to a TaskOutput call's task_id.
+   */
+  backgroundTaskOutput?: string;
 }
 
 /**

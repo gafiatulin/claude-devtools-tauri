@@ -127,5 +127,44 @@ export function linkToolCallsToResults(
     linkedTools.set(toolCallId, linkedItem);
   }
 
+  // Link background Bash commands to their TaskOutput results.
+  // Background Bash result is "Command running in background with ID: X"
+  // and a subsequent TaskOutput call with task_id "X" has the actual output.
+  const bgTaskIdToToolId = new Map<string, string>();
+  for (const [toolId, item] of linkedTools) {
+    if (item.name === 'Bash' && item.input.run_in_background) {
+      const content = item.result?.content;
+      if (typeof content === 'string') {
+        const match = content.match(/Command running in background with ID:\s*(\S+)/);
+        if (match) {
+          bgTaskIdToToolId.set(match[1].replace(/\.$/, ''), toolId);
+        }
+      }
+    }
+  }
+  if (bgTaskIdToToolId.size > 0) {
+    for (const item of linkedTools.values()) {
+      if (item.name === 'TaskOutput') {
+        const taskId = item.input.task_id as string | undefined;
+        if (taskId && bgTaskIdToToolId.has(taskId) && item.result) {
+          const bashToolId = bgTaskIdToToolId.get(taskId)!;
+          const bashTool = linkedTools.get(bashToolId);
+          if (bashTool) {
+            // Extract output from TaskOutput result
+            const tur = item.result.toolUseResult as Record<string, unknown> | undefined;
+            const task = tur?.task as Record<string, unknown> | undefined;
+            const output = task?.output as string | undefined;
+            const actualOutput = output
+              ?? (typeof item.result.content === 'string' ? item.result.content : undefined);
+            bashTool.backgroundTaskOutput = actualOutput;
+            if (actualOutput) {
+              bashTool.outputPreview = formatToolResult(actualOutput);
+            }
+          }
+        }
+      }
+    }
+  }
+
   return linkedTools;
 }

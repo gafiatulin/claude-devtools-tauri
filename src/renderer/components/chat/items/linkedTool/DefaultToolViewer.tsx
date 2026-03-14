@@ -42,8 +42,8 @@ export const DefaultToolViewer: React.FC<DefaultToolViewerProps> = ({ linkedTool
         </div>
       </div>
 
-      {/* Output Section */}
-      {!linkedTool.isOrphaned && linkedTool.result && (
+      {/* Output Section — for background tasks, show linked TaskOutput content instead of placeholder */}
+      {!linkedTool.isOrphaned && linkedTool.result && (backgroundTaskId ? linkedTool.backgroundTaskOutput : true) && (
         <div>
           <div
             className="mb-1 flex items-center gap-2 text-xs"
@@ -63,13 +63,15 @@ export const DefaultToolViewer: React.FC<DefaultToolViewerProps> = ({ linkedTool
                   : 'var(--color-text-secondary)',
             }}
           >
-            {renderOutput(linkedTool.result.content)}
+            {renderOutput(linkedTool.backgroundTaskOutput ?? linkedTool.result.content)}
           </div>
         </div>
       )}
 
-      {/* Background task streaming output */}
-      {backgroundTaskId && <BackgroundTaskOutput taskId={backgroundTaskId} active={true} />}
+      {/* Background task streaming output (live polling, only when no linked output yet) */}
+      {backgroundTaskId && !linkedTool.backgroundTaskOutput && (
+        <BackgroundTaskOutput taskId={backgroundTaskId} active={true} />
+      )}
 
       {/* In-progress output */}
       {linkedTool.isOrphaned && linkedTool.progress && (
