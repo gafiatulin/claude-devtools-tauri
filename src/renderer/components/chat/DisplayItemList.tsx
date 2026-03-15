@@ -37,6 +37,8 @@ interface DisplayItemListProps {
   notificationColorMap?: Map<string, TriggerColor>;
   /** Optional callback to register tool element refs for scroll targeting */
   registerToolRef?: (toolId: string, el: HTMLDivElement | null) => void;
+  /** Whether the session is currently ongoing */
+  isSessionOngoing?: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export const DisplayItemList = React.memo(({
   highlightColor,
   notificationColorMap,
   registerToolRef,
+  isSessionOngoing,
 }: Readonly<DisplayItemListProps>): React.JSX.Element => {
   // Reply-link highlight: when hovering a reply badge, dim everything except the linked pair
   const [replyLinkToolId, setReplyLinkToolId] = useState<string | null>(null);
@@ -158,6 +161,7 @@ export const DisplayItemList = React.memo(({
                 isHighlighted={highlightToolUseId === item.tool.id}
                 highlightColor={highlightColor}
                 notificationDotColor={notificationColorMap?.get(item.tool.id)}
+                isSessionOngoing={isSessionOngoing}
                 registerRef={
                   registerToolRef ? (el) => registerToolRef(item.tool.id, el) : undefined
                 }

@@ -544,6 +544,7 @@ const AIChatGroupInner = ({
             highlightColor={highlightColor}
             notificationColorMap={notificationColorMap}
             registerToolRef={registerToolRef}
+            isSessionOngoing={isSessionOngoing}
           />
         </div>
       )}

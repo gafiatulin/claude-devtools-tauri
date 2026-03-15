@@ -52,6 +52,8 @@ interface LinkedToolItemProps {
   highlightColor?: TriggerColor;
   /** Notification dot color for this tool item */
   notificationDotColor?: TriggerColor;
+  /** Whether the session is currently ongoing (affects orphaned tool display) */
+  isSessionOngoing?: boolean;
   /** Optional ref registration callback for external scroll control */
   registerRef?: (el: HTMLDivElement | null) => void;
 }
@@ -63,9 +65,11 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
   isHighlighted,
   highlightColor,
   notificationDotColor,
+  isSessionOngoing,
   registerRef,
 }) => {
-  const status = getToolStatus(linkedTool);
+  const rawStatus = getToolStatus(linkedTool);
+  const status = rawStatus === 'orphaned' && isSessionOngoing ? 'pending' : rawStatus;
   const summary = getToolSummary(linkedTool.name, linkedTool.input);
   const elementRef = useRef<HTMLDivElement>(null);
 
@@ -199,15 +203,26 @@ export const LinkedToolItem: React.FC<LinkedToolItemProps> = ({
             className="flex items-center gap-2 text-xs italic"
             style={{ color: 'var(--tool-item-muted)' }}
           >
-            <StatusDot status="orphaned" />
-            No result received
+            {isSessionOngoing ? (
+              <>
+                <StatusDot status="pending" />
+                Running…
+              </>
+            ) : (
+              <>
+                <StatusDot status="orphaned" />
+                No result received
+              </>
+            )}
           </div>
         )}
 
         {/* Timing */}
-        <div className="text-xs" style={{ color: 'var(--tool-item-muted)' }}>
-          Duration: {formatDuration(linkedTool.durationMs)}
-        </div>
+        {!linkedTool.isOrphaned && (
+          <div className="text-xs" style={{ color: 'var(--tool-item-muted)' }}>
+            Duration: {formatDuration(linkedTool.durationMs)}
+          </div>
+        )}
       </BaseItem>
     </div>
   );
