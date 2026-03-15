@@ -94,12 +94,6 @@ jobs:
         with:
           args: --target ${{ matrix.target }}
 
-      - name: Remove signature from DMG
-        run: |
-          for dmg in src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg; do
-            codesign --remove-signature "$dmg"
-          done
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
