@@ -39,6 +39,17 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Set version from tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Setting version to $VERSION"
+          # Update tauri.conf.json
+          sed -i '' "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
+          # Update Cargo.toml
+          sed -i '' "s/^version = \".*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
+          # Update package.json (only the top-level "version" field)
+          sed -i '' '0,/"version": ".*"/{s/"version": ".*"/"version": "'"$VERSION"'"/}' package.json
+
       - run: pnpm install --frozen-lockfile
 
       - name: Create self-signed certificate
@@ -82,6 +93,12 @@ jobs:
           APPLE_SIGNING_IDENTITY: "Claude DevTools Self-Signed"
         with:
           args: --target ${{ matrix.target }}
+
+      - name: Remove signature from DMG
+        run: |
+          for dmg in src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg; do
+            codesign --remove-signature "$dmg"
+          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
