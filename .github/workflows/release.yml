@@ -47,8 +47,8 @@ jobs:
           sed -i '' "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
           # Update Cargo.toml
           sed -i '' "s/^version = \".*\"/version = \"$VERSION\"/" src-tauri/Cargo.toml
-          # Update package.json (only the top-level "version" field)
-          sed -i '' '0,/"version": ".*"/{s/"version": ".*"/"version": "'"$VERSION"'"/}' package.json
+          # Update package.json (only the top-level "version" field, line 4)
+          sed -i '' '4s/"version": ".*"/"version": "'"$VERSION"'"/' package.json
 
       - run: pnpm install --frozen-lockfile
 
