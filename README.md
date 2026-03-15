@@ -123,9 +123,35 @@ This rewrite trades cross-platform support and some advanced features for a dram
 
 ---
 
-## Development
+## Installation
 
-**Prerequisites:** Rust (stable), pnpm, [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+### Build locally (recommended)
+
+Requires Rust (stable), pnpm, and [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
+
+```bash
+pnpm install
+pnpm tauri build --bundles app
+open src-tauri/target/release/bundle/macos/Claude\ DevTools.app
+```
+
+### Download from GitHub Releases
+
+The app is not notarized with Apple, so macOS will block it on first open. After opening the DMG and dragging the app to Applications:
+
+1. Open the app — macOS will show a warning and block it
+2. Go to **System Settings → Privacy & Security**
+3. Scroll down to find **"Claude DevTools" was blocked** and click **Open Anyway**
+
+Alternatively, remove the quarantine attribute before opening:
+
+```bash
+xattr -d com.apple.quarantine /Applications/Claude\ DevTools.app
+```
+
+---
+
+## Development
 
 ```bash
 # Install dependencies
