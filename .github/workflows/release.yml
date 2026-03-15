@@ -20,7 +20,9 @@ jobs:
       matrix:
         include:
           - target: aarch64-apple-darwin
+            arch: aarch64
           - target: x86_64-apple-darwin
+            arch: x86_64
     steps:
       - uses: actions/checkout@v6
 
@@ -42,7 +44,7 @@ jobs:
       - name: Set version from tag
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          echo "Setting version to $VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           # Update tauri.conf.json
           sed -i '' "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" src-tauri/tauri.conf.json
           # Update Cargo.toml
@@ -70,7 +72,7 @@ jobs:
           extendedKeyUsage = codeSigning
           CNFEOF
           openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem \
-            -days 365 -nodes -subj "/CN=Claude DevTools Self-Signed" \
+            -days 1 -nodes -subj "/CN=Claude DevTools Self-Signed" \
             -extensions v3_cs -config codesign.cnf
           openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem \
             -password pass:build -legacy
@@ -86,13 +88,53 @@ jobs:
 
           rm -f key.pem cert.pem cert.p12 codesign.cnf
 
-      - name: Build and release
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: "Claude DevTools Self-Signed"
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Claude DevTools ${{ github.ref_name }}"
-          releaseDraft: false
           args: --target ${{ matrix.target }}
+
+      - name: Create DMG
+        run: |
+          APP_PATH="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Claude DevTools.app"
+          DMG_NAME="Claude.DevTools_${VERSION}_${{ matrix.arch }}.dmg"
+
+          mkdir -p dmg-staging
+          cp -R "$APP_PATH" dmg-staging/
+          ln -s /Applications dmg-staging/Applications
+
+          hdiutil create -volname "Claude DevTools" \
+            -srcfolder dmg-staging \
+            -ov -format UDZO \
+            "$DMG_NAME"
+
+          echo "DMG_NAME=$DMG_NAME" >> "$GITHUB_ENV"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v7
+        with:
+          name: dmg-${{ matrix.arch }}
+          path: ${{ env.DMG_NAME }}
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/build.keychain-db"
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Claude DevTools ${{ github.ref_name }}"
+          files: "*.dmg"
+          generate_release_notes: true
