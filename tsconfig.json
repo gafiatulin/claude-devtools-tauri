@@ -15,11 +15,10 @@
     "jsx": "react-jsx",
 
     /* Path aliases (match Vite resolve.alias) */
-    "baseUrl": ".",
     "paths": {
-      "@renderer/*": ["src/renderer/*"],
-      "@shared/*": ["src/shared/*"],
-      "@main/*": ["src/main/*"]
+      "@renderer/*": ["./src/renderer/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@main/*": ["./src/main/*"]
     },
 
     /* Linting */
