@@ -39,8 +39,8 @@ importers:
         specifier: ^13.2.1
         version: 13.2.1
       preact:
-        specifier: ^10.29.0
-        version: 10.29.0
+        specifier: ^10.29.1
+        version: 10.29.1
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -1209,8 +1209,8 @@ packages:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
-  preact@10.29.0:
-    resolution: {integrity: sha512-wSAGyk2bYR1c7t3SZ3jHcM6xy0lcBcDel6lODcs9ME6Th++Dx2KU+6D3HD8wMMKGA8Wpw7OMd3/4RGzYRpzwRg==}
+  preact@10.29.1:
+    resolution: {integrity: sha512-gQCLc/vWroE8lIpleXtdJhTFDogTdZG9AjMUpVkDf2iTCNwYNWA+u16dL41TqUDJO4gm2IgrcMv3uTpjd4Pwmg==}
 
   property-information@7.1.0:
     resolution: {integrity: sha512-TwEZ+X+yCJmYfL7TPUOcvBZ4QfoT5YenQiJuX//0th53DE6w0xxLEtfK3iyryQFddXuvkIk51EEgrJQ0WJkOmQ==}
@@ -2518,7 +2518,7 @@ snapshots:
 
   powershell-utils@0.1.0: {}
 
-  preact@10.29.0: {}
+  preact@10.29.1: {}
 
   property-information@7.1.0: {}
 
